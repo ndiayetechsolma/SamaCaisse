@@ -92,6 +92,7 @@
     state.caisses = payload.caisses || [];
     state.personnel = payload.personnel || [];
     state.loading = false;
+    syncEnterpriseBadge();
     render();
   }
 
@@ -155,6 +156,16 @@
     document.getElementById('profile-name').textContent = name;
     const avatar = document.getElementById('profile-avatar');
     if (avatar) avatar.textContent = String(name).split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase();
+  }
+
+  function syncEnterpriseBadge() {
+    const badge = document.getElementById('enterprise-name-badge');
+    if (!badge) return;
+    const name = state.entreprise.nom || '';
+    badge.textContent = name;
+    badge.classList.toggle('hidden', !name);
+    const breadcrumb = document.getElementById('breadcrumb-current');
+    if (breadcrumb) breadcrumb.textContent = pageTitle();
   }
   function reportSnapshot() {
     const sales = filtered(state.ventes).filter(v => !v.annulee && inPeriod(v.date_heure));
@@ -410,7 +421,14 @@
     if (type === 'sale') {
       title = 'Enregistrer une vente';
       const storeField = state.isPersonnel ? '' : `<div class="field"><label>Magasin</label><select id="modal-store"><option value="">— Sélectionner —</option>${storeOptions()}</select></div>`;
-      fields = `<div class="field"><label>Produit (optionnel)</label><input id="modal-product" placeholder="Nom du produit" list="product-list" /><datalist id="product-list">${state.produits.map(product => `<option value="${escapeHtml(product.nom)}">`).join('')}</datalist></div><div class="field"><label>Quantité</label><input id="modal-quantite" type="number" min="1" value="1" /></div><div class="field"><label>Montant total (${escapeHtml(state.entreprise.devise)})</label><input id="modal-amount" type="number" placeholder="0" /></div>${storeField}<div class="field"><label>Mode de paiement</label><select id="modal-payment"><option value="liquide">Liquide</option><option value="mobile_money">Mobile money</option></select></div>`;
+      const catalogProducts = state.produits.filter(product => product.actif !== false && (state.isPersonnel ? product.magasin_id === state.store || product.magasin_id === null : true));
+      const catalogGrid = catalogProducts.length
+        ? `<div class="sale-catalog-grid">${catalogProducts.map(product => `<button type="button" class="sale-catalog-item" data-catalog-product="${product.id}"><span class="sale-catalog-name">${escapeHtml(product.nom)}</span><span class="sale-catalog-prix">${money(product.prix)}</span><span class="sale-catalog-stock ${product.stock > 0 ? '' : 'stock-out'}">Stock : ${product.stock}</span></button>`).join('')}</div>`
+        : '<p class="subtle">Aucun produit dans le catalogue. Ajoutez-en depuis la vue Produits.</p>';
+      fields = `<div class="catalog-check"><input type="checkbox" id="modal-use-catalog" /> <label for="modal-use-catalog">Choisir dans le stock</label></div>
+        <div class="catalog-panel hidden" id="catalog-panel"><div class="sale-catalog-search"><input type="text" id="modal-catalog-search" placeholder="Rechercher un produit…" /></div>${catalogGrid}</div>
+        <div class="field free-field"><label>Produit (optionnel)</label><input id="modal-product" placeholder="Nom du produit" list="product-list" /><datalist id="product-list">${state.produits.map(product => `<option value="${escapeHtml(product.nom)}">`).join('')}</datalist></div>
+        <div class="field"><label>Quantité</label><input id="modal-quantite" type="number" min="1" value="1" /></div><div class="field"><label>Montant total (${escapeHtml(state.entreprise.devise)})</label><input id="modal-amount" type="number" placeholder="0" /></div>${storeField}<div class="field"><label>Mode de paiement</label><select id="modal-payment"><option value="liquide">Liquide</option><option value="mobile_money">Mobile money</option></select></div>`;
     } else if (type === 'expense') {
       title = 'Ajouter une dépense';
       const storeField = state.isPersonnel ? '' : `<div class="field"><label>Magasin</label><select id="modal-store">${storeOptions()}</select></div>`;
@@ -470,6 +488,11 @@
       const productInput = modal.querySelector('#modal-product');
       const quantiteInput = modal.querySelector('#modal-quantite');
       const amountInput = modal.querySelector('#modal-amount');
+      const useCatalog = modal.querySelector('#modal-use-catalog');
+      const catalogPanel = modal.querySelector('#catalog-panel');
+      const catalogSearch = modal.querySelector('#modal-catalog-search');
+      const catalogItems = modal.querySelectorAll('[data-catalog-product]');
+      const freeField = modal.querySelector('.free-field');
       const fillPrice = () => {
         const valeur = String(productInput.value || '').trim().toLowerCase();
         const product = state.produits.find(item => valeur && item.nom.toLowerCase() === valeur);
@@ -478,6 +501,27 @@
       productInput.addEventListener('change', fillPrice);
       productInput.addEventListener('input', fillPrice);
       quantiteInput.addEventListener('input', fillPrice);
+      const selectCatalogProduct = product => {
+        productInput.value = product.nom;
+        if (product.prix) amountInput.value = product.prix * (Number(quantiteInput.value) || 1);
+        catalogItems.forEach(item => item.classList.toggle('selected', item.dataset.catalogProduct === product.id));
+      };
+      catalogItems.forEach(item => item.addEventListener('click', () => {
+        const product = state.produits.find(p => p.id === item.dataset.catalogProduct);
+        if (product) selectCatalogProduct(product);
+      }));
+      if (catalogSearch) catalogSearch.addEventListener('input', () => {
+        const needle = String(catalogSearch.value || '').trim().toLowerCase();
+        catalogItems.forEach(item => {
+          const name = String(item.querySelector('.sale-catalog-name')?.textContent || '').toLowerCase();
+          item.classList.toggle('hidden', !!(needle && !name.includes(needle)));
+        });
+      });
+      if (useCatalog) useCatalog.addEventListener('change', () => {
+        const show = useCatalog.checked;
+        catalogPanel.classList.toggle('hidden', !show);
+        freeField.classList.toggle('hidden-field', show);
+      });
     }
     return modal;
   }
@@ -736,10 +780,17 @@
 
   function setupNav() {
     document.querySelectorAll('.nav-item').forEach(item => {
-      item.onclick = () => { state.currentView = item.dataset.view; render(); };
+      item.onclick = () => { state.currentView = item.dataset.view; render(); closeSidebarOnNav(); };
       const restricted = ['products', 'team', 'reports'].includes(item.dataset.view);
       item.classList.toggle('hidden', state.isPersonnel && restricted);
     });
+  }
+
+  function closeSidebarOnNav() {
+    const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('sidebar-backdrop');
+    if (sidebar) sidebar.classList.remove('open');
+    if (backdrop) backdrop.classList.remove('show');
   }
 
   function animateCounts() {
@@ -763,8 +814,18 @@
     if (!state.token) return;
     if (!state.isPersonnel && !state.entreprise_id) return;
     setupNav();
+    setupSidebar();
     document.querySelectorAll('[data-action="edit-profile"]').forEach(button => button.onclick = () => openModal('settings'));
     loadData();
+  }
+
+  function setupSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('sidebar-backdrop');
+    const mobileBtn = document.getElementById('mobile-menu');
+    const closeSidebar = () => { sidebar.classList.remove('open'); backdrop.classList.remove('show'); };
+    if (mobileBtn) mobileBtn.onclick = () => { sidebar.classList.add('open'); backdrop.classList.add('show'); };
+    if (backdrop) backdrop.onclick = closeSidebar;
   }
 
   window.addEventListener('solma-auth-ready', init);

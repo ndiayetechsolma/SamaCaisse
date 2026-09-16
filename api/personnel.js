@@ -108,7 +108,7 @@ async function handleCreate(request, response) {
       telephone: normalizedTelephone,
       code_pin_hash
     })
-    .select('id, nom, telephone, role, magasin_id, actif, created_at')
+    .select('id, nom, telephone, role, magasin_id, actif, cree_le')
     .single();
   if (error) return response.status(400).json({ error: error.message });
 
