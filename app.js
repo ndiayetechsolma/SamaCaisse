@@ -536,7 +536,7 @@
       const pin = modal.querySelector('#modal-pin').value.trim();
       const magId = modal.querySelector('#modal-store').value;
       if (!required(name) || !required(phone) || !/^\d{4}$/.test(pin) || !magId) { showToast('Renseignez le nom, le téléphone, le code à 4 chiffres et le magasin.'); return; }
-      const { response, payload } = await API('/api/personnel-create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { nom: name, telephone: phone, pin, magasin_id: magId } });
+      const { response, payload } = await API('/api/personnel', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { action: 'create', nom: name, telephone: phone, pin, magasin_id: magId } });
       if (!response.ok) { showToast(payload.error === 'Ce numéro de téléphone est déjà utilisé dans votre entreprise.' ? 'Ce numéro est déjà utilisé.' : (payload.error || 'Création impossible.')); return; }
       modal.remove();
       await loadData();
@@ -594,7 +594,7 @@
         body.password_actuel = passwordActuel;
         body.nouveau_mot_de_passe = nouveauMotDePasse;
       }
-      const { response, payload } = await API('/api/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body });
+      const { response, payload } = await API('/api/account', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body });
       if (!response.ok) { showToast(payload.error || 'Profil non modifié.'); return; }
       window.solmaCompteSession = { ...(window.solmaCompteSession || {}), compte: { ...(window.solmaCompteSession?.compte || {}), ...payload.compte } };
       modal.remove();
@@ -608,7 +608,7 @@
       const pin = modal.querySelector('#modal-pin').value.trim();
       const magId = modal.querySelector('#modal-store').value;
       if (!required(nom) || !required(phone) || !magId) { showToast('Renseignez le nom, le téléphone et le magasin.'); return; }
-      const body = { personnel_id: personnelId, nom, telephone: phone, magasin_id: magId };
+      const body = { action: 'update', personnel_id: personnelId, nom, telephone: phone, magasin_id: magId };
       if (pin) {
         if (!/^\d{4}$/.test(pin)) { showToast('Le code doit contenir 4 chiffres.'); return; }
         body.pin = pin;
@@ -623,14 +623,14 @@
 
   async function cancelSale(saleId) {
     if (!confirm('Annuler cette vente ? Le stock sera remis à jour.')) return;
-    const { response, payload } = await API('/api/sales-delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { sale_id: saleId } });
+    const { response, payload } = await API('/api/sales', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { action: 'cancel', sale_id: saleId } });
     if (!response.ok) { showToast(payload.error || 'Annulation impossible.'); return; }
     await loadData();
     showToast('Vente annulée.');
   }
   async function cancelExpense(expenseId) {
     if (!confirm('Annuler cette dépense ?')) return;
-    const { response, payload } = await API('/api/expenses-delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { expense_id: expenseId } });
+    const { response, payload } = await API('/api/expenses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { action: 'cancel', expense_id: expenseId } });
     if (!response.ok) { showToast(payload.error || 'Annulation impossible.'); return; }
     await loadData();
     showToast('Dépense annulée.');
@@ -645,7 +645,7 @@
 
   async function togglePersonnel(personnelId, active) {
     if (!confirm(active ? 'Désactiver cette personne ? Elle ne pourra plus se connecter.' : 'Réactiver cette personne ?')) return;
-    const { response, payload } = await API('/api/personnel-delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { personnel_id: personnelId, actif: !active } });
+      const { response, payload } = await API('/api/personnel', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { action: 'toggle', personnel_id: personnelId, actif: !active } });
     if (!response.ok) { showToast(payload.error || 'Modification impossible.'); return; }
     await loadData();
     showToast('Accès mis à jour.');

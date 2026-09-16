@@ -63,7 +63,7 @@
   };
 
   const routeAfterCompteLogin = async token => {
-    const { response, payload } = await api('/api/account/me', { headers: { Authorization: `Bearer ${token}` } });
+    const { response, payload } = await api('/api/account', { headers: { Authorization: `Bearer ${token}` } });
     if (!response.ok) {
       clearStoredAccount();
       window.solmaCompteSession = null;
@@ -123,10 +123,10 @@
             error.textContent = 'Champs incomplets ou mots de passe différents.';
             return;
           }
-          const { response, payload } = await api('/api/account/create', {
+          const { response, payload } = await api('/api/account', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nom, email, password })
+            body: JSON.stringify({ action: 'create', nom, email, password })
           });
           if (!response.ok) { error.textContent = payload.error || 'Impossible de créer le compte.'; return; }
           window.solmaCompteSession = payload;
@@ -135,10 +135,10 @@
           return;
         }
 
-        const { response, payload } = await api('/api/account/login', {
+        const { response, payload } = await api('/api/account', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password })
+          body: JSON.stringify({ action: 'login', email, password })
         });
         if (!response.ok) { error.textContent = payload.error || 'Connexion impossible.'; return; }
         window.solmaCompteSession = payload;
@@ -151,10 +151,10 @@
       const pin = document.getElementById('personnel-pin').value;
       clearStoredAccount();
       window.solmaCompteSession = null;
-      const { response, payload } = await api('/api/personnel-login', {
+      const { response, payload } = await api('/api/personnel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telephone, pin })
+        body: JSON.stringify({ action: 'login', telephone, pin })
       });
       if (!response.ok) { error.textContent = 'Téléphone ou code incorrect.'; return; }
       sessionStorage.setItem('solma_personnel_session', JSON.stringify(payload));
@@ -178,17 +178,18 @@
     try {
       const token = window.solmaCompteSession?.token;
       if (!token) { clearStoredAccount(); showAuth(); return; }
-      const { response, payload } = await api('/api/onboarding', {
+      const { response, payload } = await api('/api/account', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
+          action: 'onboarding',
           entreprise_nom: document.getElementById('onboarding-nom').value.trim(),
           devise: document.getElementById('onboarding-devise').value.trim(),
           magasin_nom: document.getElementById('onboarding-magasin').value.trim()
         })
       });
       if (!response.ok) { onboardingError.textContent = payload.error || 'Impossible de créer votre espace.'; return; }
-      const me = await api('/api/account/me', { headers: { Authorization: `Bearer ${token}` } });
+      const me = await api('/api/account', { headers: { Authorization: `Bearer ${token}` } });
       if (!me.response.ok) { clearStoredAccount(); showAuth(); return; }
       window.solmaCompteData = me.payload;
       showAppShell();

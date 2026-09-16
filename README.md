@@ -36,7 +36,7 @@ Front-end **HTML/CSS/JavaScript natif** (léger, rapide, adapté mobile), base d
 Navigateur
   ├─ Interface web responsive (HTML/CSS/JS natif)
   ├─ Comptes propriétaires (inscription/connexion) via /api/account
-  ├─ Onboarding guidé (entreprise + magasin) via /api/onboarding
+  ├─ Onboarding guidé (entreprise + magasin) via POST /api/account { action: 'onboarding' }
   ├─ Client Supabase avec règles d'accès RLS
   └─ Routes Vercel /api pour les opérations métier
        └─ Base de données PostgreSQL Supabase
@@ -181,22 +181,19 @@ Toutes les routes de mutation attendent un JWT dans l'en-tête `Authorization: B
 
 | Route | Méthode | Rôle | Description |
 | --- | --- | --- | --- |
-| `POST /api/account/create` | public | — | Inscrire un propriétaire `{ nom, email, password }` |
-| `POST /api/account/login` | public | — | Connexion propriétaire `{ email, password }` → `{ token, compte }` |
-| `GET /api/account/me` | compte | — | Profil + entreprises du propriétaire |
-| `POST /api/onboarding` | compte | — | Créer l'entreprise + premier magasin `{ entreprise_nom, devise, magasin_nom }` |
+| `POST /api/account` | public | — | `{ action: 'create', nom, email, password }` ou `{ action: 'login', email, password }` → `{ token, compte }` |
+| `POST /api/account` | compte | — | `{ action: 'onboarding', entreprise_nom, devise, magasin_nom }` (créer l'entreprise + premier magasin) |
+| `GET /api/account` | compte | — | Profil + entreprises du propriétaire |
+| `PATCH /api/account` | compte | — | Modifier `{ nom, email, password_actuel, nouveau_mot_de_passe }` |
 | `POST /api/magasins` | compte | — | `{ entreprise_id, nom }` (créer) ou `{ action: 'rename', magasin_id, nom }` |
 | `POST /api/entreprise` | compte | — | Modifier `{ entreprise_id, nom, devise }` |
-| `PATCH /api/profile` | compte | — | Modifier `{ nom, email, password_actuel, nouveau_mot_de_passe }` |
-| `POST /api/personnel/create` | compte | — | Ajouter `{ nom, telephone, pin, magasin_id }` |
-| `POST /api/personnel` | compte | — | Modifier `{ personnel_id, nom, telephone, pin?, magasin_id }` |
-| `POST /api/personnel-delete` | compte | — | Désactiver / réactiver `{ personnel_id, actif }` |
-| `POST /api/personnel-login` | public | — | Connexion vendeur `{ telephone, pin }` → `{ token, personnel }` |
+| `POST /api/personnel` | public | — | `{ action: 'login', telephone, pin }` → `{ token, personnel }` |
+| `POST /api/personnel` | compte | — | `{ action: 'create', nom, telephone, pin, magasin_id }`, `{ action: 'update', personnel_id, nom, telephone, pin?, magasin_id }` ou `{ action: 'toggle', personnel_id, actif }` |
 | `POST /api/products` | compte | — | `{ action: 'create', nom, categorie, prix, stock, magasin_id? }` ou `{ action: 'update', produit_id, nom, categorie, prix, stock }` |
-| `POST /api/sales` | compte ou vendeur | — | Enregistrer une vente `{ produit_id?, nom_produit, quantite, montant, mode_paiement, magasin_id }` |
-| `POST /api/sales-delete` | compte | — | Annuler `{ vente_id }` |
-| `POST /api/expenses` | compte ou vendeur | — | Enregistrer une dépense `{ montant, motif, magasin_id }` |
-| `POST /api/expenses-delete` | compte | — | Annuler `{ depense_id }` |
+| `GET /api/sales` | compte ou vendeur | — | Liste des ventes (filtre `entreprise_id`, `magasin_id`) |
+| `POST /api/sales` | compte ou vendeur | — | Enregistrer une vente `{ produit_id?, nom_produit, quantite, montant, mode_paiement, magasin_id }` ou `{ action: 'cancel', sale_id }` |
+| `GET /api/expenses` | compte ou vendeur | — | Liste des dépenses (filtre `entreprise_id`, `magasin_id`) |
+| `POST /api/expenses` | compte ou vendeur | — | Enregistrer une dépense `{ montant, motif, magasin_id }` ou `{ action: 'cancel', expense_id }` |
 | `POST /api/cash?magasin_id=…` | compte ou vendeur | — | `{ action: 'open', montant_ouverture }` ou `{ action: 'close', montant_fermeture }` |
 | `GET /api/business-data?entreprise_id=…` | compte ou vendeur | — | Charger entreprise, magasins, produits, ventes, dépenses, caisses, personnel |
 | `POST /api/demo` | public | — | Créer/récupérer le compte de démonstration → `{ token, compte }` |

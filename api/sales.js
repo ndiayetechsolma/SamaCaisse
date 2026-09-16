@@ -9,6 +9,12 @@ export default async function handler(request, response) {
   const { identity } = await getSession(request);
   if (!identity) return response.status(401).json({ error: 'Session invalide ou expirée.' });
 
+  const { action } = request.body || {};
+  if (action === 'cancel') return handleCancel(request, response, identity);
+  return handleCreate(request, response, identity);
+}
+
+async function handleCreate(request, response, identity) {
   const { produit_id = null, nom_produit, quantite = 1, montant, mode_paiement, magasin_id } = request.body || {};
   if (!['liquide', 'mobile_money'].includes(mode_paiement) || !Number.isInteger(quantite) || quantite <= 0 || !Number.isInteger(montant) || montant <= 0) {
     return response.status(400).json({ error: 'Données de vente invalides.' });
@@ -88,4 +94,45 @@ export default async function handler(request, response) {
   }
 
   return response.status(201).json({ sale, stock: finalProductId ? decrementedStock : null });
+}
+
+async function handleCancel(request, response, identity) {
+  if (identity.type !== 'compte') return response.status(403).json({ error: 'Annulation réservée au propriétaire.' });
+
+  const { sale_id } = request.body || {};
+  if (!sale_id) return response.status(400).json({ error: 'Vente requise.' });
+
+  const { data: sale } = await client
+    .from('ventes')
+    .select('id, produit_id, quantite')
+    .eq('id', sale_id)
+    .eq('compte_id', identity.compteId)
+    .eq('annulee', false)
+    .maybeSingle();
+  if (!sale) return response.status(404).json({ error: 'Vente introuvable ou déjà annulée.' });
+
+  const { error } = await client
+    .from('ventes')
+    .update({ annulee: true, annulee_par: identity.compteId, annulee_le: new Date().toISOString() })
+    .eq('id', sale.id)
+    .eq('compte_id', identity.compteId);
+  if (error) return response.status(400).json({ error: error.message });
+
+  if (sale.produit_id) {
+    const { data: product } = await client
+      .from('produits')
+      .select('stock')
+      .eq('id', sale.produit_id)
+      .eq('compte_id', identity.compteId)
+      .maybeSingle();
+    if (product) {
+      await client
+        .from('produits')
+        .update({ stock: product.stock + sale.quantite })
+        .eq('id', sale.produit_id)
+        .eq('compte_id', identity.compteId);
+    }
+  }
+
+  return response.status(200).json({ success: true });
 }
