@@ -57,9 +57,30 @@ Deux bugs signalés, tracés et corrigés, puis validés sur le site en producti
 
 ## 7. Où on s'est arrêté / prochaines étapes
 
-- Les 2 bugs ci-dessus sont corrigés, déployés et vérifiés → rapportés à l'utilisateur.
-- **Abandonner la piste "freemium/abonnement/paywall"** : l'utilisateur veut du 100% gratuit. Toute envie de monétisation doit être reconduite vers une **limite honnête et gratuite** (restrictions par compte/magasin maintenues côté API), jamais un paiement.
-- Autres idées/améliorations : les aborder en priorité selon les demandes explicites de l'utilisateur.
+### 🟡 TÂCHE EN COURS — Refonte du FOND « Liqueur Glace » (non implémentée à ce jour)
+
+- **Demande utilisateur (16/09/2026)** : changer le fond du site pour un fond **très moderne et très beau**, inspiré d'un site en ligne, qui valorise l'**effet "liquide glace"** (transparence/verre dépoli). GRATUIT, CSS pur uniquement.
+- **Recherche TERMINÉE (faite en ligne)** : la tendance 2025-2026 est le **Liquid Glass** (Apple Liquid Glass, glassmorphism) + palettes de **dégradés liquides vert-teal-lime** (ex. LiquidGradientGreenTeal) — parfaitement dans l'identité SamaCaisse.
+- **Leçon CLÉ des articles** : un "verre" ne se voit que s'il y a **une couleur saturée et vive DERRIÈRE** lui. Le fond actuel est très pâle (`linear-gradient(160deg,#f6faf7…)` + blobs `opacity:.55`, blur `rgba(255,255,255,.62)`) → le glass ne "lit" pas. Il faut un fond plus saturé (teal/émeraude/lime) pour que le verre transpire.
+- **Recette Liquid Glass (à appliquer)** : `backdrop-filter: blur(12-24px) saturate(150-180%)` + remplissage `rgba(255,255,255,.15-.70)` + **bordure hairline 1px** + **reflet intérieur haut** (inner highlight) + ombre douce. Borner à ~3 surfaces vitrées (perf mobile), fallback `prefers-reduced-motion`/`prefers-reduced-transparency`.
+- **Éléments concernés** : `body` background, `.ambient-one/two/three`, `.glass-card`, `.sidebar`, `.topbar`, cartes/panneaux glass (styles.css).
+- **À faire ensuite** : modifier `styles.css` (fond saturé + verre renforcé), incrémenter `?v=` dans `index.html`, déployer, **VÉRIFIER en navigateur réel contre le déploiement** (règle utilisateur), prévenir hard-refresh (Ctrl+Shift+R).
+
+### 🐞 NOUVEAU BUG SIGNALÉ (non diagnostiqué) — « je ne vois même pas ce que j'écris »
+
+- **Signalé le 16/09/2026 (session refonte fond)** : l'utilisateur ne voit **pas ce qu'il tape/écrit** par moment (peut toucher le shell/terminal, un champ de l'app, ou un voile/glass qui masque le texte de saisie — **à clarifier en priorité** au prochain retour, AVANT toute reprise, car c'est bloquant pour lui).
+- Le message MÊME du bug lui a empêché de voir ce qu'il écrivait → il a demandé une sauvegarde mémoire pour ne rien perdre.
+- Actions : demander à l'utilisateur **où exactement** il écrit (navigateur ? terminal PowerShell ? champ précis de l'app ?) ; reproduire en navigateur réel ; corriger puis VÉRIFIER côté déploiement avant de déclarer réglé.
+
+### 📌 INSTRUCTION UTILISATEUR (à respecter au retour) — « donne-moi la dernière réponse précédente »
+
+- Au retour (nouvelle session), après lecture de `AGENTS.md` + `MEMOIRE.md`, **reprendre EXACTEMENT là où on s'est arrêté** : la tâche de fond en cours ci-dessus (Refonte du FOND « Liquide Glace » — recherche TERMINÉE, **implémentation NON ENCORE FAITE**), et rappeler la/les dernière(s) réponse(s) précédente(s) avant de demander la suite.
+- Commencer la session par : redonner le point d'étape (% comblée) + la prochaine action, puis demander confirmation.
+
+### Contexte figé (ne pas oublier)
+- Les 2 bugs précédents (hamburger PC + connexion personnel) sont corrigés, déployés et VÉRIFIÉS (commit `6822753` poussé).
+- **Abandonner définitivement la piste "freemium/abonnement/paywall"** : 100% gratuit. Toute envie de monétisation → reconduite vers une **limite honnête et gratuite** (restrictions par compte/magasin côté API), jamais un paiement.
+- Autres idées/améliorations : les aborder selon les demandes explicites de l'utilisateur, en priorité la tâche en cours ci-dessus.
 
 ## 8. Préférences à l'écoute
 
