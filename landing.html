@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#2f746e" />
+  <meta name="description" content="SamaCaisse — la gestion commerciale simple, pensée pour les commerçants. Ventes, caisse, stock, dépenses et personnel depuis votre téléphone. Essayez la démo." />
+  <meta property="og:title" content="SamaCaisse · Gestion commerciale" />
+  <meta property="og:description" content="Ventes, caisse, stock, dépenses et personnel. La gestion commerciale simple, pensée pour les commerçants." />
+  <meta property="og:type" content="website" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%232f746e'/%3E%3Ctext x='32' y='44' font-family='Manrope,Arial,sans-serif' font-size='34' font-weight='800' fill='white' text-anchor='middle'%3ES%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <title>SamaCaisse · Gestion commerciale simple</title>
+  <style>
+    :root {
+      --teal: #2f746e;
+      --teal-dark: #1d4d49;
+      --ink: #16231c;
+      --muted: #66756d;
+      --line: #dbe4de;
+      --bg: #edf2ee;
+      --card: rgba(255, 255, 255, .72);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'DM Sans', Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(720px 480px at 85% -10%, rgba(217, 237, 189, .75), transparent 62%),
+        radial-gradient(640px 460px at -10% 8%, rgba(149, 211, 205, .38), transparent 60%),
+        linear-gradient(180deg, #f4f8f4, var(--bg));
+      min-height: 100vh;
+    }
+    .container { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+    header { padding: 22px 0; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; }
+    .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--ink); }
+    .brand-mark {
+      width: 42px; height: 42px; border-radius: 13px;
+      display: grid; place-items: center;
+      background: var(--teal);
+      color: white; font: 800 20px Manrope, sans-serif; letter-spacing: -.5px;
+      box-shadow: 0 8px 20px rgba(47, 116, 110, .28);
+    }
+    .brand b { font: 800 17px Manrope, sans-serif; letter-spacing: -.4px; }
+    .brand span { display: block; color: var(--muted); font-size: 11px; }
+    .top-actions { display: flex; gap: 10px; }
+    .top-actions a, .pin-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 11px 18px; border-radius: 999px;
+      font-size: 13px; font-weight: 700; text-decoration: none; cursor: pointer;
+      transition: .18s ease;
+    }
+    .top-actions a.ghost { color: var(--teal-dark); border: 1.5px solid rgba(47, 116, 110, .4); background: transparent; }
+    .top-actions a.solid { color: white; background: var(--teal); border: 1.5px solid var(--teal); box-shadow: 0 8px 22px rgba(47, 116, 110, .3); }
+    .top-actions a:hover { transform: translateY(-1px); }
+    .hero { display: grid; grid-template-columns: 1.08fr .92fr; gap: 48px; align-items: center; padding: 64px 0 84px; }
+    .hero-copy h1 { font: 800 42px Manrope, sans-serif; letter-spacing: -1.8px; line-height: 1.08; }
+    .hero-copy h1 em { color: var(--teal); font-style: normal; }
+    .hero-copy .sub { margin: 18px 0 0; color: var(--muted); font-size: 16px; line-height: 1.6; max-width: 46ch; }
+    .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 30px; }
+    .pin-btn { background: var(--teal); color: white; border: 0; box-shadow: 0 10px 26px rgba(47, 116, 110, .34); }
+    .pin-btn:hover { transform: translateY(-1px); }
+    .pin-btn:disabled { opacity: .6; cursor: wait; transform: none; }
+    .pin-btn.soft { background: rgba(255,255,255,.8); color: var(--teal-dark); border: 1.5px solid var(--line); box-shadow: none; }
+    .hero-note { margin-top: 14px; color: var(--muted); font-size: 12px; }
+    .preview {
+      position: relative;
+      background: var(--card);
+      border: 1px solid rgba(255, 255, 255, .75);
+      border-radius: 22px;
+      padding: 22px;
+      box-shadow: 0 30px 70px rgba(29, 77, 73, .16);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+    .preview .bar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+    .preview .bar i { width: 30px; height: 30px; border-radius: 9px; background: var(--teal); display: grid; place-items: center; color: white; font: 800 14px Manrope, sans-serif; }
+    .preview .bar b { font: 700 14px Manrope, sans-serif; }
+    .preview .bar span { flex: 1; text-align: right; color: var(--muted); font-size: 11px; }
+    .stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+    .stat { background: rgba(255, 255, 255, .8); border: 1px solid rgba(255,255,255,.7); border-radius: 13px; padding: 12px; }
+    .stat b { display: block; font: 800 15px Manrope, sans-serif; letter-spacing: -.3px; }
+    .stat span { color: var(--muted); font-size: 10px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 11px; background: rgba(255,255,255,.75); border: 1px solid rgba(255,255,255,.7); margin-bottom: 8px; }
+    .row strong { font-size: 12.5px; }
+    .row span { color: var(--muted); font-size: 10.5px; }
+    .row .amt { text-align: right; font: 700 12.5px Manrope, sans-serif; }
+    .tag { display: inline-block; padding: 4px 9px; border-radius: 999px; font-size: 9.5px; font-weight: 700; background: rgba(217, 237, 189, .8); color: var(--teal-dark); }
+    .features { padding: 30px 0 84px; }
+    .features h2 { font: 800 30px Manrope, sans-serif; letter-spacing: -1px; text-align: center; margin-bottom: 42px; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .card {
+      background: var(--card);
+      border: 1px solid rgba(255, 255, 255, .75);
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: 0 14px 36px rgba(29, 77, 73, .08);
+    }
+    .card .ic {
+      width: 40px; height: 40px; border-radius: 11px; margin-bottom: 14px;
+      display: grid; place-items: center;
+      background: rgba(217, 237, 189, .75); color: var(--teal-dark);
+      font: 800 15px Manrope, sans-serif;
+    }
+    .card h3 { font: 700 15px Manrope, sans-serif; margin-bottom: 6px; }
+    .card p { color: var(--muted); font-size: 12.5px; line-height: 1.55; }
+    footer { border-top: 1px solid rgba(29, 77, 73, .1); padding: 26px 0 40px; color: var(--muted); font-size: 12px; }
+    .foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .foot a { color: var(--teal-dark); text-decoration: none; font-weight: 600; }
+    .demo-error { margin-top: 14px; color: #c0392b; font-size: 12.5px; display: none; }
+    @media (max-width: 900px) {
+      .hero { grid-template-columns: 1fr; padding: 44px 0 60px; }
+      .hero-copy h1 { font-size: 33px; }
+      .grid { grid-template-columns: 1fr; }
+      .top-actions a.solid { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="container topbar">
+      <a class="brand" href="/">
+        <div class="brand-mark">S</div>
+        <div><b>SamaCaisse</b><span>Gestion commerciale</span></div>
+      </a>
+      <div class="top-actions">
+        <a class="ghost" href="/app">Se connecter</a>
+        <a class="solid" href="/app">Créer mon espace</a>
+      </div>
+    </div>
+  </header>
+
+  <section class="hero container">
+    <div class="hero-copy">
+      <h1>La gestion commerciale <em>simple</em>, pensée pour les commerçants.</h1>
+      <p class="sub">Ventes, caisse, stock, dépenses et personnel, depuis votre téléphone. Sans cahier, sans calcul manuel, sans complexité. Comme Wave, pour votre boutique.</p>
+      <div class="hero-actions">
+        <button class="pin-btn" id="demo-button">Essayer la démo gratuitement</button>
+        <a class="pin-btn soft" href="/app">Créer mon espace</a>
+      </div>
+      <p class="hero-note">Démo pré-remplie avec des données fictives. Aucune inscription requise.</p>
+      <p class="demo-error" id="demo-error">Impossible de démarrer la démo pour le moment. Réessayez plus tard.</p>
+    </div>
+    <div class="preview" aria-hidden="true">
+      <div class="bar"><i>S</i><b>SamaCaisse</b><span>Boutique Démo</span></div>
+      <div class="stat-row">
+        <div class="stat"><b>48 650 F</b><span>Ventes du jour</span></div>
+        <div class="stat"><b>12</b><span>Transactions</span></div>
+        <div class="stat"><b>Ouverte</b><span>Caisse</span></div>
+      </div>
+      <div class="row"><div><strong>Eau minérale 1,5L</strong><br><span>Liquide · 14h32</span></div><div><span class="tag">Vente</span> <span class="amt">1 000 F</span></div></div>
+      <div class="row"><div><strong>Riz parfumé 5kg</strong><br><span>Mobile money · 13h58</span></div><div><span class="tag">Vente</span> <span class="amt">4 250 F</span></div></div>
+      <div class="row"><div><strong>Électricité</strong><br><span>Dépense · 09h12</span></div><div><span class="tag" style="background:rgba(186,205,197,.5)">Dépense</span> <span class="amt">5 000 F</span></div></div>
+    </div>
+  </section>
+
+  <section class="container features">
+    <h2>Tout ce qu'il faut pour tenir les comptes</h2>
+    <div class="grid">
+      <div class="card"><div class="ic">₣</div><h3>Ventes en un geste</h3><p>Enregistrez chaque vente en quelques secondes : liquide ou mobile money, avec quantité et prix automatique.</p></div>
+      <div class="card"><div class="ic">C</div><h3>Caisse maîtrisée</h3><p>Ouvrez et fermez la caisse, comparez le compté au théorique et gardez un historique indéfini.</p></div>
+      <div class="card"><div class="ic">S</div><h3>Stock et produits</h3><p>Un catalogue avec catégories, prix et gestion du stock, par point de vente.</p></div>
+      <div class="card"><div class="ic">D</div><h3>Dépenses suivies</h3><p>Chaque sortie d'argent est saisie immédiatement et réconciliée avec vos ventes.</p></div>
+      <div class="card"><div class="ic">É</div><h3>Équipe en confiance</h3><p>Chaque vendeur se connecte avec téléphone + code PIN et ne voit que ses propres ventes.</p></div>
+      <div class="card"><div class="ic">R</div><h3>Rapports clairs</h3><p>Ventes, dépenses, bénéfice par jour, par produit, par vendeur. Exports CSV et PDF.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container foot">
+      <span>© 2026 SamaCaisse — La gestion commerciale simple.</span>
+      <span><a href="/app">Espace propriétaire</a></span>
+    </div>
+  </footer>
+
+  <script>
+    const button = document.getElementById('demo-button');
+    const error = document.getElementById('demo-error');
+    button.addEventListener('click', async () => {
+      button.disabled = true;
+      button.textContent = 'Préparation de la démo...';
+      error.style.display = 'none';
+      try {
+        const response = await fetch('/api/demo', { method: 'POST' });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(payload.error || 'Réponse invalide');
+        localStorage.setItem('samacaisse_compte', JSON.stringify(payload));
+        window.location.href = '/app';
+      } catch (exception) {
+        button.disabled = false;
+        button.textContent = 'Essayer la démo gratuitement';
+        error.style.display = 'block';
+      }
+    });
+  </script>
+
+</body>
+</html>

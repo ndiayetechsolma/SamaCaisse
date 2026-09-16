@@ -1,0 +1,23 @@
+# Configuration locale (ne jamais la versionner : contient tes vraies clés)
+config.js
+
+# Environnement
+.env
+.env.*
+!.env.example
+
+node_modules/
+.vercel
+
+# Projet d'origine (référence privée — pas inclus dans le dépôt public)
+solmashop-origin/
+
+# Artefacts de build Android (TWA)
+*.apk
+*.aab
+*.keystore
+
+# Fichiers temporaires
+.DS_Store
+Thumbs.db
+.vercel

@@ -1,0 +1,25 @@
+{
+  "name": "SamaCaisse — Gestion commerciale",
+  "short_name": "SamaCaisse",
+  "description": "La gestion commerciale simple, pensée pour les commerçants : ventes, caisse, stock, dépenses et personnel.",
+  "lang": "fr",
+  "start_url": "/app",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#edf2ee",
+  "theme_color": "#2f746e",
+  "icons": [
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

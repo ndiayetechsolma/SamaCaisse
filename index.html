@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#edf2ee" />
+  <meta name="description" content="SamaCaisse — la gestion commerciale simple, pensée pour les commerçants. Ventes, caisse, stock et dépenses depuis votre téléphone." />
+  <meta property="og:title" content="SamaCaisse · Gestion commerciale" />
+  <meta property="og:description" content="La gestion commerciale simple, pensée pour les commerçants. Ventes, caisse, stock, dépenses et personnel." />
+  <meta property="og:type" content="website" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%232f746e'/%3E%3Ctext x='32' y='44' font-family='Manrope,Arial,sans-serif' font-size='34' font-weight='800' fill='white' text-anchor='middle'%3ES%3C/text%3E%3C/svg%3E" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/icon-180.png" />
+  <title>SamaCaisse · Gestion commerciale</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=20260916-2">
+</head>
+
+<body>
+
+  <!-- Connexion -->
+
+  <section class="auth-screen" id="auth-screen">
+    <div class="auth-card glass-card">
+
+      <div class="brand auth-brand">
+        <div class="brand-mark">S</div>
+        <div class="brand-text">
+          <strong>SamaCaisse</strong>
+          <span>Gestion commerciale</span>
+        </div>
+      </div>
+
+      <p class="eyebrow">Espace propriétaire</p>
+
+      <h1 id="login-title">Bienvenue dans votre espace.</h1>
+
+      <p class="subtle" id="login-intro">
+        Connectez-vous pour gérer vos magasins.
+      </p>
+
+      <div class="auth-modes">
+        <button type="button" class="auth-mode active" data-auth-mode="compte">
+          Propriétaire
+        </button>
+
+        <button type="button" class="auth-mode" data-auth-mode="personnel">
+          Personnel
+        </button>
+      </div>
+
+      <form id="admin-login-form" class="auth-form" autocomplete="off">
+
+        <div class="field admin-field register-field hidden-field">
+          <label for="register-name">Votre nom</label>
+          <input id="register-name" type="text" autocomplete="name" placeholder="Exemple : Amadou Mbaye">
+        </div>
+
+        <div class="field admin-field">
+          <label for="admin-email">Adresse email</label>
+          <input id="admin-email" type="email" autocomplete="email" required placeholder="vous@exemple.com">
+        </div>
+
+        <div class="field admin-field">
+          <label for="admin-password">Mot de passe</label>
+          <input id="admin-password" type="password" autocomplete="current-password" required placeholder="8 caractères minimum">
+        </div>
+
+        <div class="field admin-field register-field hidden-field">
+          <label for="register-confirm">Confirmer le mot de passe</label>
+          <input id="register-confirm" type="password" autocomplete="new-password" placeholder="Répétez le mot de passe">
+        </div>
+
+        <div class="field personnel-field hidden-field">
+          <label for="personnel-phone">Numéro de téléphone</label>
+          <input id="personnel-phone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="77 000 00 00">
+        </div>
+
+        <div class="field personnel-field hidden-field">
+          <label for="personnel-pin">Code à 4 chiffres</label>
+          <input id="personnel-pin" type="password" inputmode="numeric" maxlength="4" placeholder="••••">
+        </div>
+
+        <p class="auth-error" id="auth-error"></p>
+
+        <button class="btn btn-primary" type="submit" id="admin-login-button">
+          Se connecter
+        </button>
+
+        <p class="auth-toggle-row">
+          <button type="button" class="auth-toggle-link" id="auth-toggle">Créer mon espace</button>
+        </p>
+
+      </form>
+
+    </div>
+  </section>
+
+  <!-- Onboarding (première connexion : créer son entreprise) -->
+
+  <section class="auth-screen hidden" id="onboarding-screen">
+    <div class="auth-card glass-card">
+
+      <div class="brand auth-brand">
+        <div class="brand-mark">S</div>
+        <div class="brand-text">
+          <strong>SamaCaisse</strong>
+          <span>Gestion commerciale</span>
+        </div>
+      </div>
+
+      <p class="eyebrow">Bienvenue, <span id="onboarding-account-name">—</span></p>
+
+      <h1>Créez votre entreprise.</h1>
+
+      <p class="subtle">
+        Une seule fois : votre entreprise et son premier magasin. Vous pourrez tout compléter ensuite.
+      </p>
+
+      <form id="onboarding-form" class="auth-form" autocomplete="off">
+
+        <div class="field">
+          <label for="onboarding-nom">Nom de l'entreprise</label>
+          <input id="onboarding-nom" type="text" required placeholder="Exemple : Solma Shop">
+        </div>
+
+        <div class="field">
+          <label for="onboarding-devise">Devise</label>
+          <input id="onboarding-devise" type="text" value="FCFA" required placeholder="FCFA">
+        </div>
+
+        <div class="field">
+          <label for="onboarding-magasin">Premier magasin</label>
+          <input id="onboarding-magasin" type="text" required placeholder="Exemple : Magasin Plateau">
+        </div>
+
+        <p class="auth-error" id="onboarding-error"></p>
+
+        <button class="btn btn-primary" type="submit" id="onboarding-button">
+          Créer mon espace
+        </button>
+
+        <p class="auth-toggle-row">
+          <button type="button" class="auth-toggle-link" data-logout>Se déconnecter</button>
+        </p>
+
+      </form>
+
+    </div>
+  </section>
+
+  <!-- Décor -->
+
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
+  <div class="ambient ambient-three"></div>
+
+  <button class="mobile-menu icon-button" id="mobile-menu" aria-label="Réduire le menu">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="3" y1="6" x2="21" y2="6"/>
+      <line x1="3" y1="12" x2="21" y2="12"/>
+      <line x1="3" y1="18" x2="21" y2="18"/>
+    </svg>
+  </button>
+
+  <div class="app-shell">
+
+    <!-- Sidebar -->
+
+    <aside class="sidebar" id="sidebar">
+
+      <!-- Profil -->
+
+      <div class="profile-chip">
+
+        <div class="avatar" id="profile-avatar">
+          AM
+        </div>
+
+        <div class="profile-text">
+          <strong id="profile-name">Compte propriétaire</strong>
+          <span id="profile-role">Administrateur</span>
+        </div>
+
+        <button class="icon-button" aria-label="Modifier le profil" data-action="edit-profile">
+          •••
+        </button>
+
+      </div>
+
+      <!-- Navigation -->
+
+      <nav class="main-nav" aria-label="Navigation principale">
+
+        <p class="nav-label">Vue d'ensemble</p>
+
+        <div class="nav-group">
+
+        <button class="nav-item active" data-view="dashboard">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+              <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+              <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+              <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+            </svg>
+          </span>
+          <span class="nav-text">Tableau de bord</span>
+        </button>
+
+        <button class="nav-item" data-view="sales">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 17 9 11 13 15 21 7"/>
+              <polyline points="14 7 21 7 21 14"/>
+            </svg>
+          </span>
+          <span class="nav-text">Ventes</span>
+        </button>
+
+        <button class="nav-item" data-view="cash">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 12V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3"/>
+              <path d="M18 12h.01"/>
+              <path d="M3 9h13"/>
+            </svg>
+          </span>
+          <span class="nav-text">Caisses</span>
+        </button>
+
+        <button class="nav-item" data-view="expenses">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 7 9 13 13 9 21 17"/>
+              <polyline points="14 17 21 17 21 10"/>
+            </svg>
+          </span>
+          <span class="nav-text">Dépenses</span>
+        </button>
+
+        </div>
+
+        <p class="nav-label management-label">Gestion</p>
+
+        <div class="nav-group">
+
+        <button class="nav-item" data-view="products">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 8l-9-5-9 5 9 5 9-5Z"/>
+              <path d="M3 8v8l9 5 9-5V8"/>
+              <path d="M12 13v8"/>
+            </svg>
+          </span>
+          <span class="nav-text">Produits</span>
+        </button>
+
+        <button class="nav-item" data-view="team">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </span>
+          <span class="nav-text">Personnel</span>
+        </button>
+
+        <button class="nav-item" data-view="reports">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="20" x2="12" y2="10"/>
+              <line x1="18" y1="20" x2="18" y2="4"/>
+              <line x1="6" y1="20" x2="6" y2="16"/>
+            </svg>
+          </span>
+          <span class="nav-text">Rapports</span>
+        </button>
+
+        </div>
+
+      </nav>
+
+      <button class="logout" data-logout>
+
+        <span class="nav-icon">
+
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+
+        </span>
+
+        <span class="logout-text">Se déconnecter</span>
+
+      </button>
+
+      <!-- Footer -->
+
+      <div class="sidebar-footer">
+
+        <div class="help-card">
+          <span>Besoin d'aide ?</span>
+          <strong>
+            Centre de ressources
+            <span>↗</span>
+          </strong>
+        </div>
+
+      </div>
+
+    </aside>
+
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <!-- Contenu -->
+
+    <main class="main-content">
+
+      <!-- Topbar -->
+
+      <header class="topbar">
+
+        <div class="header-navigation">
+
+          <div class="breadcrumb">
+            <span>SamaCaisse</span>
+            <b>/</b>
+            <strong id="breadcrumb-current">Tableau de bord</strong>
+          </div>
+
+        </div>
+
+        <div class="topbar-brand">
+          <div class="brand-mark">S</div>
+          <div class="brand-text">
+            <strong>SamaCaisse</strong>
+            <span>Gestion commerciale</span>
+          </div>
+        </div>
+
+        <div class="topbar-actions">
+
+          <div class="store-selector" id="store-selector-custom">
+
+            <span class="status-dot"></span>
+
+            <button type="button" class="store-selector-trigger" id="store-selector-trigger" aria-haspopup="listbox" aria-expanded="false">
+              <span id="store-selector-label">Tous les magasins</span>
+              <span class="store-selector-caret">▾</span>
+            </button>
+
+            <div class="store-selector-menu" id="store-selector-menu" role="listbox">
+            </div>
+
+          </div>
+
+
+        </div>
+
+      </header>
+
+      <div class="page-content" id="page-content"></div>
+
+    </main>
+
+  </div>
+
+  <div class="print-report" id="print-report"></div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="auth.js?v=20260916-1"></script>
+  <script src="app.js?v=20260916-2"></script>
+
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "name": "samacaisse",
+  "version": "1.0.0",
+  "description": "Plateforme publique de gestion commerciale : ventes, caisse, stock et dépenses, multi-propriétaires.",
+  "type": "module",
+  "scripts": {
+    "check": "node --check app.js && node --check auth.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.0",
+    "bcryptjs": "^3.0.3",
+    "jose": "^6.2.12"
+  }
+}
