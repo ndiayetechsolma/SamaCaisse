@@ -89,6 +89,9 @@
     });
     if (authMode === 'personnel') registerMode = false;
     document.querySelectorAll('.register-field').forEach(item => item.classList.toggle('hidden-field', authMode !== 'compte' || !registerMode));
+    ['admin-email', 'admin-password'].forEach(id => {
+      document.getElementById(id).toggleAttribute('required', authMode === 'compte');
+    });
     loginButton.textContent = defaultButtonText();
   }));
 
@@ -115,6 +118,11 @@
       if (authMode === 'compte') {
         const email = document.getElementById('admin-email').value.trim();
         const password = document.getElementById('admin-password').value;
+
+        if (!email || !password) {
+          error.textContent = 'Renseignez votre email et votre mot de passe.';
+          return;
+        }
 
         if (registerMode) {
           const nom = document.getElementById('register-name').value.trim();
@@ -149,6 +157,16 @@
 
       const telephone = document.getElementById('personnel-phone').value.trim();
       const pin = document.getElementById('personnel-pin').value;
+
+      if (!telephone) {
+        error.textContent = 'Renseignez le numéro de téléphone.';
+        return;
+      }
+      if (!pin || pin.length !== 4) {
+        error.textContent = 'Le code PIN doit contenir 4 chiffres.';
+        return;
+      }
+
       clearStoredAccount();
       window.solmaCompteSession = null;
       const { response, payload } = await api('/api/personnel', {
