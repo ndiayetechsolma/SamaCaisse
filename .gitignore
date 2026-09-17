@@ -21,3 +21,7 @@ solmashop-origin/
 .DS_Store
 Thumbs.db
 .vercel
+.env*
+
+# Sauvegardes locales (doublons de travail — jamais poussés sur GitHub)
+_sauvegardes/

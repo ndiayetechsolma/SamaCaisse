@@ -93,7 +93,7 @@ async function handleOnboarding(request, response) {
   const magasinNom = String(magasin_nom || '').trim().slice(0, 60);
   const effectiveDevise = String(devise || 'FCFA').trim().slice(0, 10) || 'FCFA';
   if (!entrepriseNom || !magasinNom) {
-    return response.status(400).json({ error: 'Nom de l\u2019entreprise et nom du magasin sont requis.' });
+    return response.status(400).json({ error: 'Nom de l\u2019entreprise et nom de la boutique sont requis.' });
   }
 
   const { data: entreprise, error: entrepriseError } = await client

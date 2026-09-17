@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260916-4">
+  <link rel="stylesheet" href="styles.css?v=20260917-2">
 </head>
 
 <body>
@@ -55,7 +55,7 @@
       <h1 id="login-title">Bienvenue dans votre espace.</h1>
 
       <p class="subtle" id="login-intro">
-        Connectez-vous pour gérer vos magasins.
+        Connectez-vous pour gérer vos boutiques.
       </p>
 
       <div class="auth-modes">
@@ -133,7 +133,7 @@
       <h1>Créez votre entreprise.</h1>
 
       <p class="subtle">
-        Une seule fois : votre entreprise et son premier magasin. Vous pourrez tout compléter ensuite.
+        Une seule fois : votre entreprise et sa première boutique. Vous pourrez tout compléter ensuite.
       </p>
 
       <form id="onboarding-form" class="auth-form" autocomplete="off">
@@ -149,8 +149,8 @@
         </div>
 
         <div class="field">
-          <label for="onboarding-magasin">Premier magasin</label>
-          <input id="onboarding-magasin" type="text" required placeholder="Exemple : Magasin Plateau">
+          <label for="onboarding-magasin">Première boutique</label>
+          <input id="onboarding-magasin" type="text" required placeholder="Exemple : Boutique Plateau">
         </div>
 
         <p class="auth-error" id="onboarding-error"></p>
@@ -174,14 +174,6 @@
   <div class="ambient ambient-two"></div>
   <div class="ambient ambient-three"></div>
 
-  <button class="mobile-menu icon-button" id="mobile-menu" aria-label="Réduire le menu">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <line x1="3" y1="6" x2="21" y2="6"/>
-      <line x1="3" y1="12" x2="21" y2="12"/>
-      <line x1="3" y1="18" x2="21" y2="18"/>
-    </svg>
-  </button>
-
   <div class="app-shell">
 
     <!-- Sidebar -->
@@ -193,7 +185,7 @@
       <div class="profile-chip">
 
         <div class="avatar" id="profile-avatar">
-          AM
+          S
         </div>
 
         <div class="profile-text">
@@ -322,13 +314,13 @@
 
       <div class="sidebar-footer liquid-glass">
 
-        <div class="help-card">
-          <span>Besoin d'aide ?</span>
+        <a href="about.html" target="_blank" rel="noopener" class="help-card" style="display:block; text-decoration:none; color:inherit;">
+          <span>SamaCaisse</span>
           <strong>
-            Centre de ressources
+            À propos
             <span>↗</span>
           </strong>
-        </div>
+        </a>
 
       </div>
 
@@ -345,6 +337,14 @@
       <header class="topbar" liquid-glass>
 
         <div class="header-navigation">
+
+          <button class="mobile-menu icon-button" id="mobile-menu" aria-label="Ouvrir ou replier le menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="3" y1="6" x2="21" y2="6"/>
+              <line x1="3" y1="12" x2="21" y2="12"/>
+              <line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+          </button>
 
           <div class="enterprise-badge hidden" id="enterprise-name-badge" title="Mon entreprise"></div>
 
@@ -371,7 +371,7 @@
             <span class="status-dot"></span>
 
             <button type="button" class="store-selector-trigger" id="store-selector-trigger" aria-haspopup="listbox" aria-expanded="false">
-              <span id="store-selector-label">Tous les magasins</span>
+              <span id="store-selector-label">Toutes les boutiques</span>
               <span class="store-selector-caret">▾</span>
             </button>
 
@@ -387,6 +387,48 @@
 
       <div class="page-content" id="page-content"></div>
 
+      <!-- Footer -->
+
+      <footer class="app-footer glass-card">
+        <div class="app-footer-grid">
+
+          <div>
+            <div class="app-footer-brand">
+              <div class="brand-mark" style="width:30px;height:30px;font-size:13px;">S</div>
+              <strong>SamaCaisse</strong>
+            </div>
+            <p class="app-footer-tagline">La gestion commerciale simple, pensée pour les commerçants : ventes, caisse, stock et dépenses depuis un téléphone.</p>
+          </div>
+
+          <div>
+            <h4>Navigation rapide</h4>
+            <div class="app-footer-links">
+              <button type="button" data-view-link="dashboard">Tableau de bord</button>
+              <button type="button" data-view-link="sales">Ventes</button>
+              <button type="button" data-view-link="cash">Caisses</button>
+              <button type="button" data-view-link="expenses">Dépenses</button>
+              <button type="button" data-view-link="products">Produits</button>
+              <button type="button" data-view-link="reports">Rapports</button>
+            </div>
+          </div>
+
+          <div>
+            <h4>Informations</h4>
+            <div class="app-footer-links">
+              <a href="about.html" target="_blank" rel="noopener">À propos</a>
+              <a href="mailto:ablaye.ndiaye.etude@gmail.com">ablaye.ndiaye.etude@gmail.com</a>
+              <a href="tel:+221762167959">+221 76 216 79 59</a>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="app-footer-bottom">
+          <span>© 2026 SamaCaisse. Tous droits réservés.</span>
+          <span><a href="about.html" target="_blank" rel="noopener">À propos</a> · <a href="mailto:ablaye.ndiaye.etude@gmail.com">Contact</a></span>
+        </div>
+      </footer>
+
     </main>
 
   </div>
@@ -397,8 +439,8 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <script src="auth.js?v=20260916-2"></script>
-  <script src="app.js?v=20260916-3"></script>
+  <script src="auth.js?v=20260917-2"></script>
+  <script src="app.js?v=20260917-2"></script>
 
 </body>
 </html>

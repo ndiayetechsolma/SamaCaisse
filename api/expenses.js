@@ -36,7 +36,7 @@ async function handleCreate(request, response, identity) {
   const { montant, motif, magasin_id } = request.body || {};
   let storeId = identity.type === 'personnel' ? identity.magasinId : magasin_id;
   if (!Number.isInteger(montant) || montant <= 0 || !String(motif || '').trim() || !storeId) {
-    return response.status(400).json({ error: 'Montant, motif et magasin sont requis.' });
+    return response.status(400).json({ error: 'Montant, motif et boutique sont requis.' });
   }
   const { data: store } = await client
     .from('magasins')
@@ -44,7 +44,7 @@ async function handleCreate(request, response, identity) {
     .eq('id', storeId)
     .eq('compte_id', identity.compteId)
     .maybeSingle();
-  if (!store) return response.status(400).json({ error: 'Magasin introuvable.' });
+  if (!store) return response.status(400).json({ error: 'Boutique introuvable.' });
   const entrepriseId = store.entreprise_id;
 
   let adminNom = null;

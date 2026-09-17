@@ -25,6 +25,23 @@ export async function getComptePayload(request) {
   return session.identity && session.identity.type === 'compte' ? { compte_id: session.identity.compteId } : null;
 }
 
+export async function signSuperAdminToken(superAdmin) {
+  return new SignJWT({
+    type: 'superadmin',
+    superAdminId: superAdmin.id
+  })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setSubject(superAdmin.id)
+    .setIssuedAt()
+    .setExpirationTime('12h')
+    .sign(sessionSecret());
+}
+
+export async function getSuperAdminPayload(request) {
+  const session = await getSession(request);
+  return session.identity && session.identity.type === 'superadmin' ? { super_admin_id: session.identity.superAdminId } : null;
+}
+
 export async function getSession(request) {
   const authorization = request.headers.authorization || '';
   const token = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
@@ -47,6 +64,9 @@ export async function getSession(request) {
           nom: payload.nom
         }
       };
+    }
+    if (payload.type === 'superadmin') {
+      return { token, identity: { type: 'superadmin', superAdminId: payload.superAdminId } };
     }
   } catch {}
   return { token, identity: null };

@@ -98,7 +98,7 @@ async function resolveMagasin(magasinId, entrepriseId, identity, response) {
       .eq('compte_id', identity.compteId)
       .maybeSingle();
     if (!store) {
-      response.status(400).json({ error: 'Magasin introuvable.' });
+      response.status(400).json({ error: 'Boutique introuvable.' });
       return null;
     }
     return { entreprise_id: store.entreprise_id, magasin_id: store.id };

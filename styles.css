@@ -18,6 +18,8 @@
   --ambient-3: #50c8ff;
 }
 * { box-sizing: border-box; }
+body { --sidebar-w: 252px; --topbar-gap: 22px; }
+body:has(.sidebar.collapsed) { --sidebar-w: 72px; }
 .hidden { display: none !important; }
 body { margin: 0; min-width: 320px; color: var(--ink); background-image: url('images/fond.jpg'); background-size: cover; background-position: center; background-attachment: fixed; font-family: "DM Sans", sans-serif; }
 button, select, input { font: inherit; }
@@ -299,13 +301,12 @@ html, body { overflow-x: hidden; }
 .topbar{
   position:fixed;
   top:22px;
-  left:50%;
-  transform:translateX(-50%);
+  left:calc(var(--sidebar-w) + var(--topbar-gap));
+  right:var(--topbar-gap);
   z-index:10;
 
-  width:min(920px, calc(100vw - 48px));
-
   display:flex;
+  transition:left .18s cubic-bezier(.4,0,.2,1);
   justify-content:space-between;
   align-items:center;
 
@@ -334,18 +335,17 @@ html, body { overflow-x: hidden; }
 
 .mobile-menu{
 
-  position:fixed;
-  top:26px;
-  left:22px;
-  z-index:15;
+  flex:0 0 auto;
 
-  width:38px;
-  height:38px;
+  width:34px;
+  height:34px;
 
   border-radius:10px;
 
   display:grid;
   place-items:center;
+
+  color:var(--ink);
 
   transition:background .16s ease;
 }
@@ -591,10 +591,6 @@ background: linear-gradient(145deg, rgb(50 209 155 / 72%), rgba(255, 255, 255, .
 /* Sidebar repliable (PC) */
 @media (min-width:721px){
 
-  .mobile-menu{
-    display:none;
-  }
-
   .sidebar.collapsed{
   width:72px;
   padding-left:10px;
@@ -718,26 +714,30 @@ background: linear-gradient(145deg, rgb(50 209 155 / 72%), rgba(255, 255, 255, .
     display:block;
   }
 
-  .topbar{
-
-    padding:0 16px;
+  /* Sur mobile la sidebar est un panneau flottant (hors flux) : elle ne
+     doit jamais pousser la topbar, quel que soit son état ouvert/replié. */
+  body{
+    --sidebar-w: 0px !important;
+    --topbar-gap: 12px;
   }
 
-  .topbar-brand .brand-text{
+  .topbar{
+    height:54px;
+    padding:0 14px;
+  }
+
+  /* Le logo centré est retiré sur mobile : le bouton menu + le fil
+     d'Ariane suffisent, et ça évite toute superposition. */
+  .topbar-brand{
     display:none;
   }
 
-  .topbar-brand .brand-mark{
-    width:30px;
-    height:30px;
-    font-size:14px;
-  }
-
   .breadcrumb{
-    max-width:110px;
+    max-width:96px;
     overflow:hidden;
     text-overflow:ellipsis;
     white-space:nowrap;
+    font-size:9px;
   }
 
   .topbar-actions{
@@ -747,18 +747,15 @@ background: linear-gradient(145deg, rgb(50 209 155 / 72%), rgba(255, 255, 255, .
   .store-selector{
     padding:0 10px;
   }
-    .mobile-menu{
-    top:35px;
-    left:14px;
-    width:36px;
-    height:36px;
+
+  .mobile-menu{
+    width:30px;
+    height:30px;
   }
 
-  .topbar{
-    left:auto;
-    right:14px;
-    transform:none;
-    width:calc(100vw - 64px);
+  .mobile-menu svg{
+    width:17px;
+    height:17px;
   }
 
   .store-selector-trigger{
@@ -767,31 +764,6 @@ background: linear-gradient(145deg, rgb(50 209 155 / 72%), rgba(255, 255, 255, .
 
   .store-selector-caret{
     font-size:7px;
-  }
-}
-  .topbar-brand .brand-text{
-    display:none;
-  }
-
-  .topbar-brand .brand-mark{
-    width:30px;
-    height:30px;
-    font-size:14px;
-  }
-
-  .breadcrumb{
-    max-width:110px;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    white-space:nowrap;
-  }
-
-  .topbar-actions{
-    gap:8px;
-  }
-
-  .store-selector{
-    padding:0 10px;
   }
 }
 @media (max-width: 420px) { .stats-grid { grid-template-columns: 1fr; }.notification { display: none; }.store-selector { max-width: 135px; }.store-selector select { max-width: 98px; } }
@@ -914,6 +886,24 @@ background: linear-gradient(145deg, rgb(50 209 155 / 72%), rgba(255, 255, 255, .
   background: rgba(244, 213, 141, .7);
 }
 
+.store-selector-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-left: 4px;
+  border-radius: 6px;
+  color: var(--red);
+  font-size: 11px;
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+.store-selector-delete:hover {
+  background: var(--red-soft);
+}
+
 @media (max-width: 720px) {
   .filter-input {
     width: 100%;
@@ -990,3 +980,45 @@ background: linear-gradient(145deg, rgb(50 209 155 / 72%), rgba(255, 255, 255, .
 .page-content .page-heading h1 { color: white; }
 .page-content .p.eyebrow { color: rgb(214, 12, 12); }
 .page-content .subtle { color: rgba(255, 255, 255, 0.714); }
+
+/* ============================================================================
+   Footer applicatif (visible en bas de toutes les vues de l'app)
+   ============================================================================ */
+.app-footer {
+  margin-top: 24px;
+  padding: 26px 32px 22px;
+  border-radius: 20px;
+  background: linear-gradient(145deg, rgba(255,255,255,.45), rgba(255,255,255,.14));
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255,255,255,.55);
+}
+.app-footer-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr;
+  gap: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+}
+.app-footer-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.app-footer-brand strong { font: 700 14px Manrope, sans-serif; }
+.app-footer p.app-footer-tagline { margin: 0; color: var(--muted); font-size: 11.5px; line-height: 1.6; max-width: 260px; }
+.app-footer h4 { margin: 0 0 12px; color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; }
+.app-footer-links { display: grid; gap: 8px; }
+.app-footer-links button, .app-footer-links a {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 0; background: transparent; padding: 0;
+  color: var(--ink); font-size: 12px; font-weight: 600; text-align: left;
+  text-decoration: none; cursor: pointer;
+}
+.app-footer-links button:hover, .app-footer-links a:hover { color: var(--teal); }
+.app-footer-bottom {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 12px; flex-wrap: wrap; padding-top: 16px; color: var(--muted); font-size: 10.5px;
+}
+.app-footer-bottom a { color: var(--muted); text-decoration: none; font-weight: 600; }
+.app-footer-bottom a:hover { color: var(--teal); }
+@media (max-width: 720px) {
+  .app-footer-grid { grid-template-columns: 1fr; gap: 18px; }
+  .app-footer { padding: 22px 20px 18px; }
+}

@@ -102,7 +102,7 @@
     loginTitle.textContent = registerMode ? 'Créez votre espace.' : 'Bienvenue dans votre espace.';
     loginIntro.textContent = registerMode
       ? 'Renseignez vos informations pour commencer.'
-      : 'Connectez-vous pour gérer vos magasins.';
+      : 'Connectez-vous pour gérer vos boutiques.';
     toggleLink.textContent = registerMode ? "J'ai déjà un compte" : 'Créer mon espace';
     error.textContent = '';
     form.reset();

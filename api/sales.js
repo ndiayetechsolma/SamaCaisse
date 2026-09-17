@@ -21,7 +21,7 @@ async function handleCreate(request, response, identity) {
   }
 
   let storeId = identity.type === 'personnel' ? identity.magasinId : magasin_id;
-  if (!storeId) return response.status(400).json({ error: 'Magasin requis.' });
+  if (!storeId) return response.status(400).json({ error: 'Boutique requise.' });
 
   const { data: store } = await client
     .from('magasins')
@@ -29,7 +29,7 @@ async function handleCreate(request, response, identity) {
     .eq('id', storeId)
     .eq('compte_id', identity.compteId)
     .maybeSingle();
-  if (!store) return response.status(400).json({ error: 'Magasin introuvable.' });
+  if (!store) return response.status(400).json({ error: 'Boutique introuvable.' });
   const entrepriseId = store.entreprise_id;
 
   let finalProductId = null;

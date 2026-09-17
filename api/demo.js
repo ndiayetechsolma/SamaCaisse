@@ -34,7 +34,7 @@ const seedVentes = [
 
 const seedDepenses = [
   { montant: 1500, motif: 'Transport marchandises', jours: 1 },
-  { montant: 3000, motif: 'Fournitures du magasin', jours: 3 },
+  { montant: 3000, motif: 'Fournitures de la boutique', jours: 3 },
   { montant: 5000, motif: 'Électricité', jours: 5 },
   { montant: 20000, motif: 'Réassort (riz, huile)', jours: 6 }
 ];

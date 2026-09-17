@@ -55,7 +55,7 @@
     return { response, payload };
   };
 
-  const storeName = magasinId => state.magasins.find(magasin => magasin.id === magasinId)?.nom || 'Tous les magasins';
+  const storeName = magasinId => state.magasins.find(magasin => magasin.id === magasinId)?.nom || 'Toutes les boutiques';
   const scopeMatches = item => state.store === 'all' || item.magasin_id === state.store || (item.magasin_id === null && state.store === 'all');
   const filtered = (items) => items.filter(scopeMatches);
   const periodRange = () => {
@@ -148,7 +148,7 @@
     link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 500);
   }
-  const scopeLabel = () => (state.store === 'all' ? 'Tous les magasins' : storeName(state.store));
+  const scopeLabel = () => (state.store === 'all' ? 'Toutes les boutiques' : storeName(state.store));
   function syncProfileUi() {
     const profile = window.solmaCompteSession?.compte || window.solmaPersonnelSession?.personnel;
     if (!profile) return;
@@ -198,10 +198,10 @@
     };
   }
   function exportSalesCsv() {
-    downloadCsv('ventes.csv', ['Produit', 'Vendeur', 'Magasin', 'Paiement', 'Quantité', 'Montant', 'Date', 'Statut'], personnelOwnSales(filtered(state.ventes)).filter(sale => matchesSearch(sale.nom_produit, 'ventes')).map(v => [v.nom_produit, v.personnel?.nom || v.admin_nom || 'Propriétaire', v.magasins?.nom || '', v.mode_paiement === 'liquide' ? 'Liquide' : 'Mobile money', v.quantite, v.montant, toTime(v.date_heure), v.annulee ? 'Annulée' : 'Valide']));
+    downloadCsv('ventes.csv', ['Produit', 'Vendeur', 'Boutique', 'Paiement', 'Quantité', 'Montant', 'Date', 'Statut'], personnelOwnSales(filtered(state.ventes)).filter(sale => matchesSearch(sale.nom_produit, 'ventes')).map(v => [v.nom_produit, v.personnel?.nom || v.admin_nom || 'Propriétaire', v.magasins?.nom || '', v.mode_paiement === 'liquide' ? 'Liquide' : 'Mobile money', v.quantite, v.montant, toTime(v.date_heure), v.annulee ? 'Annulée' : 'Valide']));
   }
   function exportExpensesCsv() {
-    downloadCsv('depenses.csv', ['Motif', 'Ajoutée par', 'Magasin', 'Montant', 'Date', 'Statut'], filtered(state.depenses).filter(d => matchesSearch(d.motif, 'depenses')).map(d => [d.motif, d.personnel?.nom || d.admin_nom || 'Propriétaire', d.magasins?.nom || '', d.montant, toTime(d.date_heure), d.annulee ? 'Annulée' : 'Valide']));
+    downloadCsv('depenses.csv', ['Motif', 'Ajoutée par', 'Boutique', 'Montant', 'Date', 'Statut'], filtered(state.depenses).filter(d => matchesSearch(d.motif, 'depenses')).map(d => [d.motif, d.personnel?.nom || d.admin_nom || 'Propriétaire', d.magasins?.nom || '', d.montant, toTime(d.date_heure), d.annulee ? 'Annulée' : 'Valide']));
   }
   function exportDailyCsv() {
     const { daily } = reportSnapshot();
@@ -209,7 +209,7 @@
   }
   function exportCashCsv() {
     const { cashClosed } = reportSnapshot();
-    downloadCsv('historique-caisses.csv', ['Clôturée le', 'Magasin', 'Ouverture', 'Solde théorique', 'Solde réel', 'Écart'], cashClosed.map(c => [c.date, c.store, c.opening, c.theorique, c.closings, c.difference]));
+    downloadCsv('historique-caisses.csv', ['Clôturée le', 'Boutique', 'Ouverture', 'Solde théorique', 'Solde réel', 'Écart'], cashClosed.map(c => [c.date, c.store, c.opening, c.theorique, c.closings, c.difference]));
   }
   function openPrintReport() {
     const { daily, cashClosed, totals, topProducts } = reportSnapshot();
@@ -229,7 +229,7 @@
       <h2>Jour par jour</h2>
       <table><tr><th>Jour</th><th>Ventes</th><th>Dépenses</th><th>Résultat</th></tr>${dailyRows}</table>
       <h2>Historique des caisses</h2>
-      <table><tr><th>Clôturée le</th><th>Magasin</th><th>Ouverture</th><th>Solde théorique</th><th>Solde réel</th><th>Écart</th></tr>${cashRows}</table>`;
+      <table><tr><th>Clôturée le</th><th>Boutique</th><th>Ouverture</th><th>Solde théorique</th><th>Solde réel</th><th>Écart</th></tr>${cashRows}</table>`;
     window.print();
   }
 
@@ -251,13 +251,13 @@
     else if (totalSales > 0) trend = 'Nouveau';
     else trend = '—';
     const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-    const sellerName = window.solmaPersonnelSession?.personnel?.nom || (state.entreprise.nom || 'Votre magasin');
+    const sellerName = window.solmaPersonnelSession?.personnel?.nom || (state.entreprise.nom || 'Votre boutique');
     const periodLabel = state.period === 'all' ? '' : `<span class="period-label"> · ${({ today: 'Aujourd’hui', '7d': '7 derniers jours', '30d': '30 derniers jours' })[state.period]}</span>`;
     const cashCards = filtered(state.caisses).reduce((items, item) => {
       const key = item.magasin_id;
       if (items.some(entry => entry.magasin_id === key)) return items;
       const open = !item.date_fermeture;
-      items.push({ key, name: storeName(item.magasin_id) || 'Tous les magasins', magasin_id: item.magasin_id, open, opening: item.montant_ouverture, expected: cashExpectation(item), openedAt: toTime(item.date_ouverture) });
+      items.push({ key, name: storeName(item.magasin_id) || 'Toutes les boutiques', magasin_id: item.magasin_id, open, opening: item.montant_ouverture, expected: cashExpectation(item), openedAt: toTime(item.date_ouverture) });
       return items;
     }, []);
     const latestSales = personnelOwnSales(filtered(state.ventes)).slice(0, 5);
@@ -277,7 +277,7 @@
 
   function salesTable(sales) {
     const rows = sales.length ? sales.map(sale => `<tr class="${sale.annulee ? 'cancelled-row' : ''}"><td><strong>${escapeHtml(sale.nom_produit)}</strong></td><td><div class="person"><span class="person-avatar">${initials(sale.personnel?.nom || sale.admin_nom || 'A')}</span>${escapeHtml(sale.personnel?.nom || sale.admin_nom || 'Propriétaire')}</div></td><td class="muted">${escapeHtml(sale.magasins?.nom || '—')}</td><td><span class="badge ${sale.mode_paiement === 'liquide' ? 'badge-cash' : 'badge-money'}">${sale.mode_paiement === 'liquide' ? 'Liquide' : 'Mobile money'}</span></td><td><strong>${money(sale.montant)}</strong></td><td class="muted">${escapeHtml(toTime(sale.date_heure))}${sale.annulee ? ' · Annulée' : ''}</td>${state.isPersonnel ? '' : `<td>${sale.annulee ? '<span class="muted">Annulée</span>' : `<button class="text-link danger-link" data-cancel-sale="${sale.id}">Annuler</button>`}</td>`}</tr>`).join('') : '<tr><td colspan="7"><div class="empty-state"><strong>Aucune vente</strong><span>Les ventes enregistrées apparaîtront ici.</span></div></td></tr>';
-    return `<div class="table-wrap"><table class="data-table"><thead><tr><th>Produit</th><th>Vendeur</th><th>Magasin</th><th>Paiement</th><th>Montant</th><th>Date et heure</th>${state.isPersonnel ? '' : '<th>Action</th>'}</tr></thead><tbody>${rows}</tbody></table></div>`;
+    return `<div class="table-wrap"><table class="data-table"><thead><tr><th>Produit</th><th>Vendeur</th><th>Boutique</th><th>Paiement</th><th>Montant</th><th>Date et heure</th>${state.isPersonnel ? '' : '<th>Action</th>'}</tr></thead><tbody>${rows}</tbody></table></div>`;
   }
 
   const genericHeader = (title, subtitle, action, actionLabel) => `<div class="page-heading"><div><p class="eyebrow">Gestion opérationnelle</p><h1>${title}</h1><p class="subtle">${subtitle}</p></div>${action ? `<button class="btn btn-primary" data-action="${action}">${icon('plus', 14)} ${actionLabel}</button>` : ''}</div>`;
@@ -309,7 +309,7 @@
   }
 
   function salesView() {
-    return genericHeader('Ventes', state.isPersonnel ? 'Les ventes enregistrées dans votre magasin.' : 'Toutes les ventes enregistrées dans vos magasins.', 'new-sale', 'Nouvelle vente') +
+    return genericHeader('Ventes', state.isPersonnel ? 'Les ventes enregistrées dans votre boutique.' : 'Toutes les ventes enregistrées dans vos boutiques.', 'new-sale', 'Nouvelle vente') +
       salesTableView();
   }
 
@@ -317,7 +317,7 @@
     const visibleExpenses = filtered(state.depenses).filter(depense => matchesSearch(depense.motif, 'depenses'));
     const rows = visibleExpenses.map(depense => `<tr class="${depense.annulee ? 'cancelled-row' : ''}"><td><strong>${escapeHtml(depense.motif)}</strong></td><td>${escapeHtml(depense.personnel?.nom || depense.admin_nom || 'Propriétaire')}</td><td class="muted">${escapeHtml(depense.magasins?.nom || '—')}</td><td class="negative"><strong>− ${money(depense.montant)}</strong></td><td class="muted">${escapeHtml(toTime(depense.date_heure))}${depense.annulee ? ' · Annulée' : ''}</td>${state.isPersonnel ? '' : `<td>${depense.annulee ? '<span class="muted">Annulée</span>' : `<button class="text-link danger-link" data-cancel-expense="${depense.id}">Annuler</button>`}</td>`}</tr>`).join('');
     return genericHeader('Dépenses', 'Gardez une trace claire des sorties.', 'new-expense', 'Ajouter une dépense') +
-      `<section class="glass-card view-card"><div class="filters">${searchInput('depenses', 'Rechercher un motif…')}<span class="muted">${visibleExpenses.length} dépense${visibleExpenses.length > 1 ? 's' : ''}${state.store !== 'all' ? ' · ' + escapeHtml(scopeLabel()) : ''}</span><button class="btn btn-light" data-action="export-csv-expenses">Exporter CSV ↗</button></div>${visibleExpenses.length ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>Motif</th><th>Ajoutée par</th><th>Magasin</th><th>Montant</th><th>Date</th>${state.isPersonnel ? '' : '<th>Action</th>'}</tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty-state"><strong>Aucune dépense</strong><span>Les dépenses ajoutées apparaîtront ici.</span></div>'}</section>`;
+      `<section class="glass-card view-card"><div class="filters">${searchInput('depenses', 'Rechercher un motif…')}<span class="muted">${visibleExpenses.length} dépense${visibleExpenses.length > 1 ? 's' : ''}${state.store !== 'all' ? ' · ' + escapeHtml(scopeLabel()) : ''}</span><button class="btn btn-light" data-action="export-csv-expenses">Exporter CSV ↗</button></div>${visibleExpenses.length ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>Motif</th><th>Ajoutée par</th><th>Boutique</th><th>Montant</th><th>Date</th>${state.isPersonnel ? '' : '<th>Action</th>'}</tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty-state"><strong>Aucune dépense</strong><span>Les dépenses ajoutées apparaîtront ici.</span></div>'}</section>`;
   }
 
   function cashView() {
@@ -333,7 +333,7 @@
     }).join('');
     return genericHeader('Caisses', 'Ouvertures, fermetures et écarts de caisse.', null, '') +
       `<section class="cash-list">${cards}</section>` +
-      `<section class="glass-card panel" style="margin-top:14px"><div class="panel-header"><div><h3>Historique des jours passés</h3><p>Les caisses clôturées sont conservées</p></div></div>${history ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>Clôturée le</th><th>Magasin</th><th>Ouverture</th><th>Fermeture</th><th>Écart</th></tr></thead><tbody>${history}</tbody></table></div>` : '<div class="empty-state"><strong>Pas encore d’historique</strong><span>Il apparaîtra ici après la première fermeture de caisse.</span></div>'}</section>`;
+      `<section class="glass-card panel" style="margin-top:14px"><div class="panel-header"><div><h3>Historique des jours passés</h3><p>Les caisses clôturées sont conservées</p></div></div>${history ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>Clôturée le</th><th>Boutique</th><th>Ouverture</th><th>Fermeture</th><th>Écart</th></tr></thead><tbody>${history}</tbody></table></div>` : '<div class="empty-state"><strong>Pas encore d’historique</strong><span>Il apparaîtra ici après la première fermeture de caisse.</span></div>'}</section>`;
   }
 
   function productsView() {
@@ -342,14 +342,14 @@
       const stockLabel = product.stock <= 0 ? '<span class="badge badge-cash">Épuisé</span>' : product.stock < 10 ? `<span class="badge badge-money">Stock faible</span>` : '<span class="badge badge-money">Disponible</span>';
       return `<tr><td><strong>${escapeHtml(product.nom)}</strong></td><td class="muted">${escapeHtml(product.categorie || '—')}</td><td>${escapeHtml(storeName(product.magasin_id))}</td><td><strong>${money(product.prix)}</strong></td><td><strong>${product.stock}</strong> ${stockLabel}</td><td><button class="text-link" data-edit-product="${product.id}">Modifier</button> · <button class="text-link ${product.actif ? 'danger-link' : ''}" data-toggle-product="${product.id}" data-active="${product.actif ? '1' : '0'}">${product.actif ? 'Désactiver' : 'Réactiver'}</button></td></tr>`;
     }).join('');
-    return genericHeader('Produits', 'Votre catalogue : prix, catégories et stock par magasin.', 'new-product', 'Nouveau produit') +
-      `<section class="glass-card view-card"><div class="filters">${searchInput('produits', 'Rechercher un produit…')}<span class="muted">${visibleProducts.length} produit${visibleProducts.length > 1 ? 's' : ''}</span></div>${visibleProducts.length ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>Produit</th><th>Catégorie</th><th>Magasin</th><th>Prix de vente</th><th>Stock</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty-state"><strong>Aucun produit</strong><span>Ajoutez des produits pour les vendre et suivre le stock.</span></div>'}</section>`;
+    return genericHeader('Produits', 'Votre catalogue : prix, catégories et stock par boutique.', 'new-product', 'Nouveau produit') +
+      `<section class="glass-card view-card"><div class="filters">${searchInput('produits', 'Rechercher un produit…')}<span class="muted">${visibleProducts.length} produit${visibleProducts.length > 1 ? 's' : ''}</span></div>${visibleProducts.length ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>Produit</th><th>Catégorie</th><th>Boutique</th><th>Prix de vente</th><th>Stock</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty-state"><strong>Aucun produit</strong><span>Ajoutez des produits pour les vendre et suivre le stock.</span></div>'}</section>`;
   }
 
   function teamView() {
     const rows = state.personnel.map(member => `<tr><td><div class="person"><span class="person-avatar">${initials(member.nom)}</span><strong>${escapeHtml(member.nom)}</strong></div></td><td class="muted">${member.role === 'admin' ? 'Administrateur' : 'Vendeur'}</td><td>${escapeHtml(member.telephone)}</td><td class="muted">${escapeHtml(storeName(member.magasin_id))}</td><td><span class="badge ${member.actif ? 'badge-money' : 'badge-cash'}">${member.actif ? 'Actif' : 'Inactif'}</span></td><td><button class="text-link" data-edit-personnel="${member.id}">Modifier</button> · <button class="text-link danger-link" data-deactivate-personnel="${member.id}" data-active="${member.actif ? '1' : '0'}">${member.actif ? 'Désactiver' : 'Réactiver'}</button></td></tr>`).join('');
     return genericHeader('Personnel', 'Les personnes autorisées à enregistrer des opérations.', 'new-team', 'Ajouter une personne') +
-      `<section class="glass-card view-card">${state.personnel.length ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>Nom</th><th>Rôle</th><th>Téléphone</th><th>Magasin</th><th>Accès</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty-state"><strong>Aucune personne</strong><span>Ajoutez vos premiers vendeurs pour qu’ils enregistrent des opérations.</span></div>'}</section>`;
+      `<section class="glass-card view-card">${state.personnel.length ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>Nom</th><th>Rôle</th><th>Téléphone</th><th>Boutique</th><th>Accès</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty-state"><strong>Aucune personne</strong><span>Ajoutez vos premiers vendeurs pour qu’ils enregistrent des opérations.</span></div>'}</section>`;
   }
 
   function reportsView() {
@@ -374,7 +374,7 @@
       <article class="glass-card stat-card"><div class="stat-top"><span>Résultat net</span><span class="stat-symbol">${icon('wallet')}</span></div><h2 class="${periodTotals.net >= 0 ? 'positive' : 'negative'}">${periodTotals.net >= 0 ? '+ ' : '− '}${money(Math.abs(periodTotals.net))}</h2><div class="stat-foot ${periodTotals.net >= 0 ? '' : 'negative'}">Ventes − dépenses</div></article>
     </section>
     <section class="glass-card panel">
-      <div class="panel-header"><div><h3>Ventes, dépenses et résultat par jour</h3><p>Filtré selon le magasin et la période</p></div></div>
+      <div class="panel-header"><div><h3>Ventes, dépenses et résultat par jour</h3><p>Filtré selon la boutique et la période</p></div></div>
       ${reportSnapshotDaily(periodSales, periodExpenses) ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>Jour</th><th>Ventes</th><th>Dépenses</th><th>Résultat</th></tr></thead><tbody>${reportSnapshotDaily(periodSales, periodExpenses)}</tbody></table></div>` : '<div class="empty-state"><strong>Aucune donnée</strong>Aucune vente ou dépense enregistrée pour ce filtre.</div>'}
     </section>
     <section class="content-grid" style="margin-top:14px">
@@ -403,7 +403,7 @@
       const ecart = item.ecart || 0;
       return `<tr><td><strong>${toTime(item.date_fermeture)}</strong></td><td class="muted">${escapeHtml(storeName(item.magasin_id))}</td><td>${money(item.montant_ouverture)}</td><td>${money(item.solde_theorique ?? (item.montant_fermeture - ecart))}</td><td>${money(item.montant_fermeture)}</td><td class="${ecart >= 0 ? 'positive' : 'negative'}">${ecart >= 0 ? '+ ' : '− '}${money(Math.abs(ecart))}</td></tr>`;
     }).join('');
-    return rows ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>Clôturée le</th><th>Magasin</th><th>Ouverture</th><th>Solde théorique</th><th>Solde réel</th><th>Écart</th></tr></thead><tbody>${rows}</tbody></table></div>` : null;
+    return rows ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>Clôturée le</th><th>Boutique</th><th>Ouverture</th><th>Solde théorique</th><th>Solde réel</th><th>Écart</th></tr></thead><tbody>${rows}</tbody></table></div>` : null;
   }
 
   function storeOptions() {
@@ -411,7 +411,7 @@
   }
 
   function openModal(type, payload = null) {
-    if (state.isPersonnel && ['product', 'team', 'magasin', 'settings', 'magasin-rename'].includes(type)) { showToast('Action non autorisée.'); return; }
+    if (state.isPersonnel && ['product', 'team', 'magasin', 'settings', 'magasin-rename', 'magasin-delete'].includes(type)) { showToast('Action non autorisée.'); return; }
     const modal = document.createElement('div');
     modal.className = 'modal-backdrop';
     let title = 'Nouvelle entrée';
@@ -420,7 +420,7 @@
 
     if (type === 'sale') {
       title = 'Enregistrer une vente';
-      const storeField = state.isPersonnel ? '' : `<div class="field"><label>Magasin</label><select id="modal-store"><option value="">— Sélectionner —</option>${storeOptions()}</select></div>`;
+      const storeField = state.isPersonnel ? '' : `<div class="field"><label>Boutique</label><select id="modal-store"><option value="">— Sélectionner —</option>${storeOptions()}</select></div>`;
       const catalogProducts = state.produits.filter(product => product.actif !== false && (state.isPersonnel ? product.magasin_id === state.store || product.magasin_id === null : true));
       const catalogGrid = catalogProducts.length
         ? `<div class="sale-catalog-grid">${catalogProducts.map(product => `<button type="button" class="sale-catalog-item" data-catalog-product="${product.id}"><span class="sale-catalog-name">${escapeHtml(product.nom)}</span><span class="sale-catalog-prix">${money(product.prix)}</span><span class="sale-catalog-stock ${product.stock > 0 ? '' : 'stock-out'}">Stock : ${product.stock}</span></button>`).join('')}</div>`
@@ -431,11 +431,11 @@
         <div class="field"><label>Quantité</label><input id="modal-quantite" type="number" min="1" value="1" /></div><div class="field"><label>Montant total (${escapeHtml(state.entreprise.devise)})</label><input id="modal-amount" type="number" placeholder="0" /></div>${storeField}<div class="field"><label>Mode de paiement</label><select id="modal-payment"><option value="liquide">Liquide</option><option value="mobile_money">Mobile money</option></select></div>`;
     } else if (type === 'expense') {
       title = 'Ajouter une dépense';
-      const storeField = state.isPersonnel ? '' : `<div class="field"><label>Magasin</label><select id="modal-store">${storeOptions()}</select></div>`;
+      const storeField = state.isPersonnel ? '' : `<div class="field"><label>Boutique</label><select id="modal-store">${storeOptions()}</select></div>`;
       fields = `<div class="field"><label>Motif</label><input id="modal-reason" placeholder="Ex. Transport livraison" /></div><div class="field"><label>Montant (${escapeHtml(state.entreprise.devise)})</label><input id="modal-amount" type="number" placeholder="0" /></div>${storeField}`;
     } else if (type === 'product') {
       title = 'Ajouter un produit';
-      fields = `<div class="field"><label>Nom du produit</label><input id="modal-product" placeholder="Ex. Biscuit" /></div><div class="field"><label>Catégorie</label><input id="modal-categorie" placeholder="Ex. Épicerie" /></div><div class="field"><label>Prix de vente (${escapeHtml(state.entreprise.devise)})</label><input id="modal-price" type="number" placeholder="0" /></div><div class="field"><label>Stock initial</label><input id="modal-stock" type="number" value="0" min="0" /></div><div class="field"><label>Magasin</label><select id="modal-store"><option value="">Tous les magasins (produit commun)</option>${storeOptions()}</select></div>`;
+      fields = `<div class="field"><label>Nom du produit</label><input id="modal-product" placeholder="Ex. Biscuit" /></div><div class="field"><label>Catégorie</label><input id="modal-categorie" placeholder="Ex. Épicerie" /></div><div class="field"><label>Prix de vente (${escapeHtml(state.entreprise.devise)})</label><input id="modal-price" type="number" placeholder="0" /></div><div class="field"><label>Stock initial</label><input id="modal-stock" type="number" value="0" min="0" /></div><div class="field"><label>Boutique</label><select id="modal-store"><option value="">Toutes les boutiques (produit commun)</option>${storeOptions()}</select></div>`;
     } else if (type === 'product-edit') {
       const product = state.produits.find(item => item.id === payload);
       if (!product) { showToast('Produit introuvable.'); return; }
@@ -444,20 +444,27 @@
       modal.dataset.productId = product.id;
     } else if (type === 'team') {
       title = 'Ajouter une personne';
-      fields = `<div class="field"><label>Nom complet</label><input id="modal-name" placeholder="Ex. Fatou Diop" /></div><div class="field"><label>Numéro de téléphone</label><input id="modal-phone" type="tel" inputmode="numeric" placeholder="77 000 00 00" /></div><div class="field"><label>Code à 4 chiffres</label><input id="modal-pin" type="password" inputmode="numeric" maxlength="4" placeholder="••••" /></div><div class="field"><label>Magasin</label><select id="modal-store">${storeOptions()}</select></div>`;
+      fields = `<div class="field"><label>Nom complet</label><input id="modal-name" placeholder="Ex. Fatou Diop" /></div><div class="field"><label>Numéro de téléphone</label><input id="modal-phone" type="tel" inputmode="numeric" placeholder="77 000 00 00" /></div><div class="field"><label>Code à 4 chiffres</label><input id="modal-pin" type="password" inputmode="numeric" maxlength="4" placeholder="••••" /></div><div class="field"><label>Boutique</label><select id="modal-store">${storeOptions()}</select></div>`;
     } else if (type === 'open-cash' || type === 'close-cash') {
       const isOpen = type === 'open-cash';
       title = isOpen ? 'Ouvrir une caisse' : 'Fermer la caisse';
       const label = isOpen ? 'Montant d’ouverture' : 'Montant en caisse à la fermeture';
       fields = `<div class="field"><label>${label} (${escapeHtml(state.entreprise.devise)})</label><input id="modal-amount" type="number" placeholder="0" /></div>`;
     } else if (type === 'magasin') {
-      title = 'Ajouter un magasin';
-      fields = `<div class="field"><label>Nom du magasin</label><input id="modal-store-name" placeholder="Ex. Magasin Ngor" /></div><p class="subtle">Le magasin s'ajoute à votre entreprise ${escapeHtml(state.entreprise.nom || '')}. Vous pouvez le renommer plus tard.</p>`;
+      title = 'Ajouter une boutique';
+      fields = `<div class="field"><label>Nom de la boutique</label><input id="modal-store-name" placeholder="Ex. Boutique Ngor" /></div><p class="subtle">La boutique s'ajoute à votre entreprise ${escapeHtml(state.entreprise.nom || '')}. Vous pouvez le renommer plus tard.</p>`;
     } else if (type === 'magasin-rename') {
       const magasin = state.magasins.find(item => item.id === payload);
-      if (!magasin) { showToast('Magasin introuvable.'); return; }
-      title = 'Renommer le magasin';
-      fields = `<div class="field"><label>Nom du magasin</label><input id="modal-store-name" value="${escapeHtml(magasin.nom)}" /></div>`;
+      if (!magasin) { showToast('Boutique introuvable.'); return; }
+      title = 'Renommer la boutique';
+      fields = `<div class="field"><label>Nom de la boutique</label><input id="modal-store-name" value="${escapeHtml(magasin.nom)}" /></div>`;
+      modal.dataset.storeId = magasin.id;
+    } else if (type === 'magasin-delete') {
+      const magasin = state.magasins.find(item => item.id === payload);
+      if (!magasin) { showToast('Boutique introuvable.'); return; }
+      if (state.magasins.length <= 1) { showToast('Impossible de supprimer votre dernière boutique.'); return; }
+      title = 'Supprimer la boutique';
+      fields = `<p class="subtle" style="grid-column:1/-1">Voulez-vous vraiment supprimer <strong>« ${escapeHtml(magasin.nom)} »</strong> ?<br><br>Ses ventes, dépenses, caisses, produits propres et membres du personnel seront définitivement supprimés. Les produits communs resteront.</p>`;
       modal.dataset.storeId = magasin.id;
     } else if (type === 'settings') {
       title = 'Paramètres';
@@ -475,10 +482,10 @@
       const member = state.personnel.find(item => item.id === payload);
       if (!member) { showToast('Membre introuvable.'); return; }
       title = 'Modifier la personne';
-      fields = `<div class="field"><label>Nom complet</label><input id="modal-name" value="${escapeHtml(member.nom)}" /></div><div class="field"><label>Numéro de téléphone</label><input id="modal-phone" type="tel" inputmode="numeric" placeholder="77 000 00 00" value="${escapeHtml(member.telephone)}" /></div><div class="field"><label>Code à 4 chiffres</label><input id="modal-pin" type="password" inputmode="numeric" maxlength="4" placeholder="•••• (laisser vide pour ne pas changer)" /></div><div class="field"><label>Magasin</label><select id="modal-store">${storeOptions().replace(`value="${member.magasin_id}"`, `value="${member.magasin_id}" selected`)}</select></div>`;
+      fields = `<div class="field"><label>Nom complet</label><input id="modal-name" value="${escapeHtml(member.nom)}" /></div><div class="field"><label>Numéro de téléphone</label><input id="modal-phone" type="tel" inputmode="numeric" placeholder="77 000 00 00" value="${escapeHtml(member.telephone)}" /></div><div class="field"><label>Code à 4 chiffres</label><input id="modal-pin" type="password" inputmode="numeric" maxlength="4" placeholder="•••• (laisser vide pour ne pas changer)" /></div><div class="field"><label>Boutique</label><select id="modal-store">${storeOptions().replace(`value="${member.magasin_id}"`, `value="${member.magasin_id}" selected`)}</select></div>`;
       modal.dataset.personnelId = member.id;
     }
-    modal.innerHTML = `<div class="modal glass-card"><button class="modal-close" aria-label="Fermer">${icon('close', 16)}</button><p class="eyebrow">SamaCaisse</p><h2>${title}</h2><p class="subtle">Les informations sont enregistrées immédiatement.</p><div class="form-grid modal-fields">${fields}</div><div class="form-actions"><button class="btn btn-light modal-cancel">Annuler</button><button class="btn btn-primary modal-save">Enregistrer</button></div></div>`;
+    modal.innerHTML = `<div class="modal glass-card"><button class="modal-close" aria-label="Fermer">${icon('close', 16)}</button><p class="eyebrow">SamaCaisse</p><h2>${title}</h2><p class="subtle">${type === 'magasin-delete' ? 'Cette action est définitive.' : 'Les informations sont enregistrées immédiatement.'}</p><div class="form-grid modal-fields">${fields}</div><div class="form-actions"><button class="btn btn-light modal-cancel">Annuler</button><button class="btn ${type === 'magasin-delete' ? 'btn-danger' : 'btn-primary'} modal-save">${type === 'magasin-delete' ? 'Supprimer' : 'Enregistrer'}</button></div></div>`;
     document.body.appendChild(modal);
     modal.querySelector('.modal-close').onclick = () => modal.remove();
     modal.querySelector('.modal-cancel').onclick = () => modal.remove();
@@ -534,7 +541,7 @@
       const quantite = Number(modal.querySelector('#modal-quantite').value || 1);
       const magId = state.isPersonnel ? state.store : modal.querySelector('#modal-store').value;
       const payment = modal.querySelector('#modal-payment').value;
-      if (!required(productName) || !magId || amount <= 0 || quantite <= 0) { showToast('Renseignez le produit, le montant et le magasin.'); return; }
+      if (!required(productName) || !magId || amount <= 0 || quantite <= 0) { showToast('Renseignez le produit, le montant et la boutique.'); return; }
       const matchedProduct = state.produits.find(item => item.nom === productName && item.actif !== false && (item.magasin_id === magId || item.magasin_id === null));
       const { response, payload } = await API('/api/sales', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { produit_id: matchedProduct?.id || null, nom_produit: productName, quantite, montant: amount, mode_paiement: payment, magasin_id: magId } });
       if (!response.ok) { showToast(payload.error || 'Vente impossible.'); return; }
@@ -544,7 +551,7 @@
     } else if (type === 'expense') {
       const reason = modal.querySelector('#modal-reason').value.trim();
       const magId = state.isPersonnel ? state.store : modal.querySelector('#modal-store').value;
-      if (!required(reason) || amount <= 0 || !magId) { showToast('Renseignez le motif, le montant et le magasin.'); return; }
+      if (!required(reason) || amount <= 0 || !magId) { showToast('Renseignez le motif, le montant et la boutique.'); return; }
       const { response, payload } = await API('/api/expenses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { montant: amount, motif: reason, magasin_id: magId } });
       if (!response.ok) { showToast(payload.error || 'Dépense impossible.'); return; }
       modal.remove();
@@ -579,7 +586,7 @@
       const phone = modal.querySelector('#modal-phone').value.trim();
       const pin = modal.querySelector('#modal-pin').value.trim();
       const magId = modal.querySelector('#modal-store').value;
-      if (!required(name) || !required(phone) || !/^\d{4}$/.test(pin) || !magId) { showToast('Renseignez le nom, le téléphone, le code à 4 chiffres et le magasin.'); return; }
+      if (!required(name) || !required(phone) || !/^\d{4}$/.test(pin) || !magId) { showToast('Renseignez le nom, le téléphone, le code à 4 chiffres et la boutique.'); return; }
       const { response, payload } = await API('/api/personnel', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { action: 'create', nom: name, telephone: phone, pin, magasin_id: magId } });
       if (!response.ok) { showToast(payload.error === 'Ce numéro de téléphone est déjà utilisé dans votre entreprise.' ? 'Ce numéro est déjà utilisé.' : (payload.error || 'Création impossible.')); return; }
       modal.remove();
@@ -603,22 +610,32 @@
       showToast('Caisse fermée.');
     } else if (type === 'magasin') {
       const nom = modal.querySelector('#modal-store-name').value.trim();
-      if (!required(nom)) { showToast('Renseignez le nom du magasin.'); return; }
+      if (!required(nom)) { showToast('Renseignez le nom de la boutique.'); return; }
       const { response, payload } = await API('/api/magasins', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { entreprise_id: state.entreprise_id, nom } });
       if (!response.ok) { showToast(payload.error || 'Création impossible.'); return; }
       modal.remove();
       state.store = payload.magasin.id;
       await loadData();
-      showToast('Magasin ajouté.');
+      showToast('Boutique ajoutée.');
     } else if (type === 'magasin-rename') {
       const storeId = modal.dataset.storeId;
       const nom = modal.querySelector('#modal-store-name').value.trim();
-      if (!required(nom)) { showToast('Renseignez le nom du magasin.'); return; }
+      if (!required(nom)) { showToast('Renseignez le nom de la boutique.'); return; }
       const { response, payload } = await API('/api/magasins', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { action: 'rename', magasin_id: storeId, nom } });
       if (!response.ok) { showToast(payload.error || 'Renommage impossible.'); return; }
       modal.remove();
       await loadData();
-      showToast('Magasin renommé.');
+      showToast('Boutique renommée.');
+    } else if (type === 'magasin-delete') {
+      const storeId = modal.dataset.storeId;
+      if (!storeId) { showToast('Boutique introuvable.'); return; }
+      if (!confirm('Supprimer définitivement cette boutique et toutes ses données ?')) return;
+      const { response, payload } = await API('/api/magasins', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { action: 'delete', magasin_id: storeId } });
+      if (!response.ok) { showToast(payload.error || 'Suppression impossible.'); return; }
+      modal.remove();
+      if (state.store === storeId) state.store = 'all';
+      await loadData();
+      showToast('Boutique supprimée.');
     } else if (type === 'settings') {
       const nom = modal.querySelector('#modal-profile-nom').value.trim();
       if (!required(nom)) { showToast('Renseignez votre nom.'); return; }
@@ -651,7 +668,7 @@
       const phone = modal.querySelector('#modal-phone').value.trim();
       const pin = modal.querySelector('#modal-pin').value.trim();
       const magId = modal.querySelector('#modal-store').value;
-      if (!required(nom) || !required(phone) || !magId) { showToast('Renseignez le nom, le téléphone et le magasin.'); return; }
+      if (!required(nom) || !required(phone) || !magId) { showToast('Renseignez le nom, le téléphone et la boutique.'); return; }
       const body = { action: 'update', personnel_id: personnelId, nom, telephone: phone, magasin_id: magId };
       if (pin) {
         if (!/^\d{4}$/.test(pin)) { showToast('Le code doit contenir 4 chiffres.'); return; }
@@ -746,13 +763,13 @@
     const menu = document.querySelector('#store-selector-menu');
     if (state.isPersonnel) {
       container.classList.add('hidden');
-      label.textContent = state.magasins.find(magasin => magasin.id === state.store)?.nom || 'Mon magasin';
+      label.textContent = state.magasins.find(magasin => magasin.id === state.store)?.nom || 'Ma boutique';
       state.store = state.magasins.find(magasin => magasin.id === state.store)?.id || (state.magasins[0]?.id || 'all');
       return;
     }
     container.classList.remove('hidden');
-    menu.innerHTML = `<button type="button" class="store-selector-option ${state.store === 'all' ? 'active' : ''}" data-store-value="all" role="option">Tous les magasins</button>` + state.magasins.map(magasin => `<button type="button" class="store-selector-option ${state.store === magasin.id ? 'active' : ''}" data-store-value="${magasin.id}" role="option">${escapeHtml(magasin.nom)}${state.magasins.length > 1 ? `<span class="store-selector-rename" data-store-rename="${magasin.id}" aria-label="Renommer ${escapeHtml(magasin.nom)}">✎</span>` : ''}</button>`).join('') + `<button type="button" class="store-selector-option store-selector-add" data-store-new role="option">${icon('plus', 13)} Nouveau magasin</button>`;
-    const currentLabel = state.store === 'all' ? 'Tous les magasins' : state.magasins.find(magasin => magasin.id === state.store)?.nom || 'Tous les magasins';
+    menu.innerHTML = `<button type="button" class="store-selector-option ${state.store === 'all' ? 'active' : ''}" data-store-value="all" role="option">Toutes les boutiques</button>` + state.magasins.map(magasin => `<button type="button" class="store-selector-option ${state.store === magasin.id ? 'active' : ''}" data-store-value="${magasin.id}" role="option">${escapeHtml(magasin.nom)}${state.magasins.length > 1 ? `<span class="store-selector-rename" data-store-rename="${magasin.id}" aria-label="Renommer ${escapeHtml(magasin.nom)}" title="Renommer">✎</span><span class="store-selector-delete" data-store-delete="${magasin.id}" aria-label="Supprimer ${escapeHtml(magasin.nom)}" title="Supprimer">🗑</span>` : ''}</button>`).join('') + `<button type="button" class="store-selector-option store-selector-add" data-store-new role="option">${icon('plus', 13)} Nouvelle boutique</button>`;
+    const currentLabel = state.store === 'all' ? 'Toutes les boutiques' : state.magasins.find(magasin => magasin.id === state.store)?.nom || 'Toutes les boutiques';
     label.textContent = currentLabel;
     trigger.onclick = () => {
       const open = trigger.getAttribute('aria-expanded') === 'true';
@@ -761,6 +778,8 @@
     };
     menu.querySelectorAll('[data-store-value]').forEach(option => option.onclick = () => {
       state.store = option.dataset.storeValue;
+      trigger.setAttribute('aria-expanded', 'false');
+      menu.classList.remove('open');
       render();
       setupStoreSelector();
     });
@@ -776,6 +795,28 @@
       menu.classList.remove('open');
       openModal('magasin-rename', rename.dataset.storeRename);
     }));
+    menu.querySelectorAll('[data-store-delete]').forEach(del => del.addEventListener('click', event => {
+      event.stopPropagation();
+      trigger.setAttribute('aria-expanded', 'false');
+      menu.classList.remove('open');
+      openModal('magasin-delete', del.dataset.storeDelete);
+    }));
+    bindStoreMenuOutsideClose();
+  }
+
+  let storeMenuOutsideBound = false;
+  function bindStoreMenuOutsideClose() {
+    if (storeMenuOutsideBound) return;
+    storeMenuOutsideBound = true;
+    document.addEventListener('click', event => {
+      const container = document.querySelector('#store-selector-custom');
+      const menu = document.querySelector('#store-selector-menu');
+      const trigger = document.querySelector('#store-selector-trigger');
+      if (!container || !menu || !menu.classList.contains('open')) return;
+      if (container.contains(event.target)) return;
+      trigger.setAttribute('aria-expanded', 'false');
+      menu.classList.remove('open');
+    });
   }
 
   function setupNav() {
@@ -815,6 +856,7 @@
     if (!state.isPersonnel && !state.entreprise_id) return;
     setupNav();
     setupSidebar();
+    syncProfileUi();
     document.querySelectorAll('[data-action="edit-profile"]').forEach(button => button.onclick = () => openModal('settings'));
     loadData();
   }
@@ -822,10 +864,47 @@
   function setupSidebar() {
     const sidebar = document.getElementById('sidebar');
     const backdrop = document.getElementById('sidebar-backdrop');
-    const mobileBtn = document.getElementById('mobile-menu');
-    const closeSidebar = () => { sidebar.classList.remove('open'); backdrop.classList.remove('show'); };
-    if (mobileBtn) mobileBtn.onclick = () => { sidebar.classList.add('open'); backdrop.classList.add('show'); };
-    if (backdrop) backdrop.onclick = closeSidebar;
+    const toggleBtn = document.getElementById('mobile-menu');
+    if (!sidebar || !toggleBtn) return;
+
+    const collapsedKey = 'samacaisse_sidebar_collapsed';
+    const isDesktop = () => window.matchMedia('(min-width: 721px)').matches;
+
+    // Sur PC, on restaure le choix précédent (repliée ou non).
+    if (isDesktop() && localStorage.getItem(collapsedKey) === '1') {
+      sidebar.classList.add('collapsed');
+    }
+
+    const closeMobile = () => { sidebar.classList.remove('open'); backdrop?.classList.remove('show'); };
+
+    const toggle = () => {
+      if (isDesktop()) {
+        const collapsed = sidebar.classList.toggle('collapsed');
+        localStorage.setItem(collapsedKey, collapsed ? '1' : '0');
+      } else {
+        const open = sidebar.classList.toggle('open');
+        backdrop?.classList.toggle('show', open);
+      }
+    };
+
+    toggleBtn.onclick = event => { event.stopPropagation(); toggle(); };
+    if (backdrop) backdrop.onclick = closeMobile;
+
+    // PC : un clic n'importe où en dehors de la sidebar (déjà ouverte) la replie.
+    document.addEventListener('click', event => {
+      if (!isDesktop()) return;
+      if (sidebar.classList.contains('collapsed')) return;
+      if (sidebar.contains(event.target) || toggleBtn.contains(event.target)) return;
+      sidebar.classList.add('collapsed');
+      localStorage.setItem(collapsedKey, '1');
+    });
+
+    // En passant sous 720px, on annule tout état "replié/ouverte" laissé par le PC.
+    window.addEventListener('resize', () => {
+      if (isDesktop()) return;
+      sidebar.classList.remove('open');
+      backdrop?.classList.remove('show');
+    });
   }
 
   window.addEventListener('solma-auth-ready', init);

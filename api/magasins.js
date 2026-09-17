@@ -8,15 +8,40 @@ export default async function handler(request, response) {
 
   const { identity } = await getSession(request);
   if (!identity) return response.status(401).json({ error: 'Session invalide ou expirée.' });
-  if (identity.type === 'personnel') return response.status(403).json({ error: 'Seul le propriétaire peut ajouter un magasin.' });
+  if (identity.type === 'personnel') return response.status(403).json({ error: 'Seul le propriétaire peut gérer les boutiques.' });
 
   const { action = 'create' } = request.body || {};
+
+  if (action === 'delete') {
+    const { magasin_id } = request.body || {};
+    if (!magasin_id) return response.status(400).json({ error: 'Boutique requise.' });
+    const { data: existing } = await client
+      .from('magasins')
+      .select('id, entreprise_id')
+      .eq('id', magasin_id)
+      .eq('compte_id', identity.compteId)
+      .maybeSingle();
+    if (!existing) return response.status(404).json({ error: 'Boutique introuvable.' });
+    const { count } = await client
+      .from('magasins')
+      .select('id', { count: 'exact', head: true })
+      .eq('compte_id', identity.compteId)
+      .eq('entreprise_id', existing.entreprise_id);
+    if ((count ?? 0) <= 1) return response.status(400).json({ error: 'Impossible de supprimer votre dernière boutique.' });
+    const { error } = await client
+      .from('magasins')
+      .delete()
+      .eq('id', magasin_id)
+      .eq('compte_id', identity.compteId);
+    if (error) return response.status(400).json({ error: error.message });
+    return response.status(200).json({ success: true });
+  }
 
   if (action === 'rename') {
     const { magasin_id, nom = '' } = request.body || {};
     const trimmedNom = String(nom).trim();
-    if (!magasin_id || !trimmedNom) return response.status(400).json({ error: 'Magasin et nouveau nom sont requis.' });
-    if (trimmedNom.length > 60) return response.status(400).json({ error: 'Nom du magasin trop long.' });
+    if (!magasin_id || !trimmedNom) return response.status(400).json({ error: 'Boutique et nouveau nom sont requis.' });
+    if (trimmedNom.length > 60) return response.status(400).json({ error: 'Nom de la boutique trop long.' });
     const { data: magasin, error } = await client
       .from('magasins')
       .update({ nom: trimmedNom })
@@ -25,19 +50,19 @@ export default async function handler(request, response) {
       .select('id, nom, entreprise_id')
       .maybeSingle();
     if (error) {
-      if (error.code === '23505') return response.status(409).json({ error: 'Un magasin porte déjà ce nom dans votre entreprise.' });
+      if (error.code === '23505') return response.status(409).json({ error: 'Une boutique porte déjà ce nom dans votre entreprise.' });
       return response.status(400).json({ error: error.message });
     }
-    if (!magasin) return response.status(404).json({ error: 'Magasin introuvable.' });
+    if (!magasin) return response.status(404).json({ error: 'Boutique introuvable.' });
     return response.status(200).json({ magasin });
   }
 
   const { entreprise_id = null, nom = '' } = request.body || {};
   const trimmedNom = String(nom).trim();
   if (!trimmedNom || !entreprise_id) {
-    return response.status(400).json({ error: 'Nom du magasin et entreprise sont requis.' });
+    return response.status(400).json({ error: 'Nom de la boutique et entreprise sont requis.' });
   }
-  if (trimmedNom.length > 60) return response.status(400).json({ error: 'Nom du magasin trop long.' });
+  if (trimmedNom.length > 60) return response.status(400).json({ error: 'Nom de la boutique trop long.' });
 
   const { data: owned } = await client
     .from('entreprises')
@@ -53,7 +78,7 @@ export default async function handler(request, response) {
     .select('id, nom, entreprise_id')
     .single();
   if (error) {
-    if (error.code === '23505') return response.status(409).json({ error: 'Un magasin porte déjà ce nom dans votre entreprise.' });
+    if (error.code === '23505') return response.status(409).json({ error: 'Une boutique porte déjà ce nom dans votre entreprise.' });
     return response.status(400).json({ error: error.message });
   }
 

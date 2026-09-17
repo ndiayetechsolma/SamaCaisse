@@ -8,7 +8,7 @@ export default async function handler(request, response) {
   if (!identity) return response.status(401).json({ error: 'Session invalide ou expirée.' });
 
   const storeId = identity.type === 'personnel' ? identity.magasinId : (request.query.magasin_id || request.body?.magasin_id);
-  if (!storeId) return response.status(400).json({ error: 'Magasin requis.' });
+  if (!storeId) return response.status(400).json({ error: 'Boutique requise.' });
 
   const { data: store } = await client
     .from('magasins')
@@ -16,7 +16,7 @@ export default async function handler(request, response) {
     .eq('id', storeId)
     .eq('compte_id', identity.compteId)
     .maybeSingle();
-  if (!store) return response.status(400).json({ error: 'Magasin introuvable.' });
+  if (!store) return response.status(400).json({ error: 'Boutique introuvable.' });
 
   const scoped = query => query.eq('compte_id', identity.compteId).eq('magasin_id', storeId);
 
@@ -49,7 +49,7 @@ export default async function handler(request, response) {
       })
       .select('*')
       .single();
-    if (error) return response.status(400).json({ error: error.code === '23505' ? 'Une caisse est déjà ouverte dans ce magasin.' : error.message });
+    if (error) return response.status(400).json({ error: error.code === '23505' ? 'Une caisse est déjà ouverte dans cette boutique.' : error.message });
     return response.status(201).json({ cash: data });
   }
 

@@ -77,7 +77,7 @@ async function handleCreate(request, response) {
   const trimmedNom = String(nom || '').trim();
   const normalizedTelephone = normalizePhone(telephone);
   if (!trimmedNom || !/^\d{8,12}$/.test(normalizedTelephone) || !/^\d{4}$/.test(String(pin || '')) || !magasin_id) {
-    return response.status(400).json({ error: 'Nom, téléphone (8–12 chiffres), code à 4 chiffres et magasin sont requis.' });
+    return response.status(400).json({ error: 'Nom, téléphone (8–12 chiffres), code à 4 chiffres et boutique sont requis.' });
   }
 
   const { data: store } = await client
@@ -86,7 +86,7 @@ async function handleCreate(request, response) {
     .eq('id', magasin_id)
     .eq('compte_id', identity.compteId)
     .maybeSingle();
-  if (!store) return response.status(400).json({ error: 'Magasin introuvable.' });
+  if (!store) return response.status(400).json({ error: 'Boutique introuvable.' });
 
   const { data: existing } = await client
     .from('personnel')
@@ -159,14 +159,14 @@ async function handleUpdate(request, response) {
   }
 
   if (magasin_id !== undefined) {
-    if (!magasin_id) return response.status(400).json({ error: 'Magasin requis.' });
+    if (!magasin_id) return response.status(400).json({ error: 'Boutique requise.' });
     const { data: store } = await client
       .from('magasins')
       .select('id, entreprise_id')
       .eq('id', magasin_id)
       .eq('compte_id', identity.compteId)
       .maybeSingle();
-    if (!store) return response.status(400).json({ error: 'Magasin introuvable.' });
+    if (!store) return response.status(400).json({ error: 'Boutique introuvable.' });
     updates.magasin_id = store.id;
     updates.entreprise_id = store.entreprise_id;
   }
