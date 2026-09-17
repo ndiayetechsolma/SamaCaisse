@@ -16,15 +16,31 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260916-3">
+  <link rel="stylesheet" href="styles.css?v=20260916-4">
 </head>
 
 <body>
 
+  <svg style="display:none"><filter id="glass-distortion" x="-50%" y="-50%" width="200%" height="200%">
+  <feTurbulence type="fractalNoise" baseFrequency="0.001 0.005" numOctaves="1" seed="17" result="turbulence"/>
+  <feComponentTransfer in="turbulence" result="mapped">
+    <feFuncR type="gamma" amplitude="1" exponent="10" offset="0.5"/>
+    <feFuncG type="gamma" amplitude="0" exponent="1" offset="0"/>
+    <feFuncB type="gamma" amplitude="0" exponent="1" offset="0.5"/>
+  </feComponentTransfer>
+  <feGaussianBlur in="turbulence" stdDeviation="3" result="softMap"/>
+  <feSpecularLighting in="softMap" surfaceScale="5" specularConstant="1" specularExponent="100" lighting-color="white" result="specLight"><fePointLight x="-200" y="-200" z="300"/></feSpecularLighting>
+  <feComposite in="specLight" operator="arithmetic" k1="0" k2="1" k3="1" k4="0" result="litImage"/>
+  <feDisplacementMap in="SourceGraphic" in2="softMap" scale="200" xChannelSelector="R" yChannelSelector="G"/>
+</filter></svg>
+
+  <!-- Filtre Liquid Glass (caché, appliqué via CSS aux surfaces verre) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><filter id="glass-distortion" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB"><feTurbulence type="fractalNoise" baseFrequency="0.001 0.005" numOctaves="1" seed="17" result="turbulence"/><feComponentTransfer in="turbulence" result="mapped"><feFuncR type="gamma" amplitude="1" exponent="10" offset="0.5"/><feFuncG type="gamma" amplitude="0" exponent="1" offset="0"/><feFuncB type="gamma" amplitude="0" exponent="1" offset="0.5"/></feComponentTransfer><feGaussianBlur in="mapped" stdDeviation="3" result="softMap"/><feSpecularLighting in="softMap" surfaceScale="5" specularConstant="1" specularExponent="100" lighting-color="white" result="specLight"><fePointLight x="-200" y="-200" z="300"/></feSpecularLighting><feComposite in="specLight" operator="arithmetic" k1="0" k2="1" k3="1" k4="0" result="litMap"/><feDisplacementMap in="SourceGraphic" in2="litMap" scale="200" xChannelSelector="R" yChannelSelector="G"/></filter></defs></svg>
+
   <!-- Connexion -->
 
   <section class="auth-screen" id="auth-screen">
-    <div class="auth-card glass-card">
+    <div class="auth-card glass-card liquid-glass">
 
       <div class="brand auth-brand">
         <div class="brand-mark">S</div>
@@ -102,7 +118,7 @@
   <!-- Onboarding (première connexion : créer son entreprise) -->
 
   <section class="auth-screen hidden" id="onboarding-screen">
-    <div class="auth-card glass-card">
+    <div class="auth-card glass-card liquid-glass">
 
       <div class="brand auth-brand">
         <div class="brand-mark">S</div>
@@ -170,7 +186,7 @@
 
     <!-- Sidebar -->
 
-    <aside class="sidebar" id="sidebar">
+    <aside class="sidebar liquid-glass" id="sidebar">
 
       <!-- Profil -->
 
@@ -304,7 +320,7 @@
 
       <!-- Footer -->
 
-      <div class="sidebar-footer">
+      <div class="sidebar-footer liquid-glass">
 
         <div class="help-card">
           <span>Besoin d'aide ?</span>
@@ -318,7 +334,7 @@
 
     </aside>
 
-    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+    <div class="sidebar-backdrop liquid-glass" id="sidebar-backdrop"></div>
 
     <!-- Contenu -->
 
@@ -326,7 +342,7 @@
 
       <!-- Topbar -->
 
-      <header class="topbar">
+      <header class="topbar" liquid-glass>
 
         <div class="header-navigation">
 
@@ -350,7 +366,7 @@
 
         <div class="topbar-actions">
 
-          <div class="store-selector" id="store-selector-custom">
+          <div class="store-selector liquid-glass" id="store-selector-custom">
 
             <span class="status-dot"></span>
 
@@ -359,7 +375,7 @@
               <span class="store-selector-caret">▾</span>
             </button>
 
-            <div class="store-selector-menu" id="store-selector-menu" role="listbox">
+            <div class="store-selector-menu liquid-glass" id="store-selector-menu" role="listbox">
             </div>
 
           </div>

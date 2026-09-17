@@ -1,92 +1,70 @@
-# MÉMOIRE PROJET — SamaCaisse
+# AGENTS.md — SamaCaisse (suivi technique projet)
 
-> **À lire intégralement au début de CHAQUE session, avant toute action.**
-> Ce fichier est la mémoire persistante du projet : architecture, bugs traités, état d'avancement et préférences de l'utilisateur. Complète-le au fil des sessions.
+Fichier de suivi **technique uniquement** (projet / builds / bugs / tests / déploiement).
+Aucune préférence personnelle consignée ici (les règles de travail sont dans EXPLICATIONS-TECHNIQUES.md si besoin).
 
 ---
 
 ## 1. Identité & accès
 
-- **App** : SamaCaisse — gestion commerciale multi-magasins pour commerçants au **Sénégal** (devise FCFA, interface en français, mobile-first).
-- **Dossier local** : `C:\Users\Ablaye Ndiaye\Desktop\SamaCaisse`
-- **Production** : https://samacaisse-com.vercel.app (alias Vercel)
-- **Git remote** : github.com/ndiayetechsolma/SamaCaisse (branche `main`)
-- **Déploiement** : `git push origin main` (déclenche l'auto-deploy Vercel) OU `vercel --prod --yes` depuis le dossier local.
-- Système : Windows / PowerShell 5.1 sur poste de l'utilisateur.
+- **App** : SamaCaisse — gestion commerciale multi-magasins (Sénégal, FCFA, interface française, mobile-first).
+- **Local** : `C:\Users\Ablaye Ndiaye\Desktop\SamaCaisse`
+- **Production** : https://samacaisse-com.vercel.app (Vercel, auto-deploy)
+- **Git** : https://github.com/ndiayetechsolma/SamaCaisse (branche `main`)
+- **Déploiement** : `git push origin main` (auto-deploy Vercel) OU `vercel --prod --yes`
+- **Système** : Windows / PowerShell 5.1
 
 ## 2. Stack technique
 
-- **100% natif** : `index.html` + `styles.css` + `app.js` + `auth.js` (+ `config.js` optionnel). Aucun framework JS, aucun bundler, aucun React.
-- **Backend** : Vercel Serverless Functions dans `api/*.js`.
-- **Base de données** : Supabase (Postgres), client Supabase chargé via CDN jsDelivr.
-- **Limite Vercel Hobby = 12 fonctions serveur** → actuellement **11 handlers**. NE PAS ajouter de route sans fusionner d'abord. Les helpers sont regroupés dans `api/_lib/` (ex. `auth.js`).
+- 100 % natif : `index.html` + `styles.css` + `app.js` + `auth.js` (+ `config.js` optionnel). Aucun framework/bundler.
+- Backend : Vercel Serverless Functions (`api/*.js`).
+- DB : Supabase (Postgres), client chargé via CDN jsDelivr.
+- Contrainte Vercel Hobby : max **12 fonctions serveur** → actuellement **11 handlers**. N'ajouter une route qu'après fusion. Helpers regroupés dans `api/_lib/` (`auth.js`).
 
-## 3. Modèle de données (Supabase)
+## 3. Modèle de données Supabase
 
-- Tables principales : `comptes`, `entreprises`, `magasins`, `personnel`, `produits`, `ventes`, `depenses`, `caisses`, etc.
-- **PIÈGE FRÉQUENT** : la colonne de création du personnel s'appelle `cree_le`, PAS `created_at` (voir `supabase/schema.sql`). Toujours vérifier le schéma avant d'écrire une requête.
+- Tables : `comptes`, `entreprises`, `magasins`, `personnel`, `produits`, `ventes`, `depenses`, `caisses`, …
+- **PIÈGE** : colonne création personnel = `cree_le`, PAS `created_at` (voir `supabase/schema.sql`). Vérifier le schéma avant toute requête.
 
 ## 4. Sessions & comptes
 
-- **Propriétaire (compte)** : stocké dans `localStorage` (`samacaisse_compte`) → `window.solmaCompteSession` / `solmaCompteData`.
-- **Personnel (vendeur)** : session en `sessionStorage` (`solma_personnel_session`) → `window.solmaPersonnelSession` ; mode vendeur = classe `body.seller-mode`.
-- Event `'solma-auth-ready'` déclenche `init()` dans `app.js`.
+- Propriétaire : `localStorage` (`samacaisse_compte`) → `window.solmaCompteSession` / `solmaCompteData`.
+- Personnel (vendeur) : `sessionStorage` (`solma_personnel_session`) → `solmaPersonnelSession` ; mode vendeur = `body.seller-mode`.
+- Événement `solma-auth-ready` → lance `init()` dans `app.js`.
+- Comptes démo : propriétaire `demo@samacaisse.app`/`demo1234` (via `/api/demo`) ; vendeur `0000000000`/`1234`.
 
-### Comptes de démonstration (vérifiés en prod)
-- **Propriétaire** : `demo@samacaisse.app` / `demo1234` (via `/api/demo`) — entreprise "Boutique Démo".
-- **Vendeur** : téléphone `0000000000`, PIN `1234` (Awa démo).
+## 5. Suivi builds & bugs
 
-## 5. Dernière session (16/09/2026) — bugs corrigés & VÉRIFIÉS en direct
+CORRIGÉS & VÉRIFIÉS (Puppeteer/Edge contre prod) :
+1. Hamburger PC figé → `@media(min-width:721px){ .mobile-menu{display:none} }` manquait en production.
+2. Connexion personnel silencieuse → `novalidate` + bascule dynamique de `required` + messages d'erreur explicites (`auth.js`).
 
-Deux bugs signalés, tracés et corrigés, puis validés sur le site en production réelle avec Puppeteer/Edge headless :
+⚠️ NON RÉSOLU (en attente de diagnostic) :
+- « Je ne vois pas ce que j'écris » (saisie invisible ponctuelle) — à clarifier (navigateur / terminal / champ précis).
 
-1. **Menu hamburger "figé" sur PC** — la règle `@media (min-width:721px){ .mobile-menu{ display:none; } }` manquait dans le `styles.css` **déployé** (version en production était obsolète). Le hamburger s'affichait sur desktop et son clic ne faisait qu'afficher un voile noir qui ne disparaissait pas.
-   - **Fix** : règle desktop réintégrée dans `styles.css` + déploiement.
-2. **Connexion personnel "ne réagit pas"** — les champs `admin-email`/`admin-password` (`required`) restaient `required` même masqués en mode personnel → la validation native HTML5 bloquait la soumission **sans aucun message** ("invalid form control … is not focusable").
-   - **Fix** : `novalidate` sur le formulaire dans `index.html` + bascule `required` dynamique selon `authMode` + validation JS explicite (téléphone/PIN) avec messages d'erreur clairs dans `auth.js`.
+## 6. Boucles de travail (allocation tokens)
 
-**Validation** : PC 1366px (hamburger `display:none`, plus de voile bloquant) + mobile 390px (hamburger ouvre/ferme la sidebar) + connexion vendeur `0000000000`/`1234` (shell ouvert en mode vendeur, 0 erreur JS). Commit `6822753` poussé et déployé.
+Cadre validé — continuer la session de façon **autonome**, sans redemander la permission à chaque action ; résumé fourni en fin de boucle, taggé selon la boucle :
 
-## 6. Règles de travail de l'utilisateur (IMPORTANTES)
+| Boucle | Rôle | Budget tokens |
+|---|---|---|
+| **GIGO** | Boucle principale (Large) — tâche complète, multi-étapes | ~64 000 |
+| **MIGO** | Boucle moyenne (Mini) — sous-tâche de recherche/action ciblée | ~6 000 |
+| **LIGO** | Boucle micro (micro) — action élémentaire pointue | ~600 |
 
-- **GRATUIT UNIQUEMENT** : ne JAMAIS proposer de solution payante. L'utilisateur veut exclusivement les services gratuits (Vercel Hobby, Supabase Free, pas de PSP/paywall payant). Si une option coûte de l'argent, proposer uniquement l'alternative gratuite, ou dire franchement que ce n'est pas possible gratuitement.
-- **Toujours VÉRIFIER avant de dire "c'est corrigé"** : repro basé sur navigateur réel (Puppeteer/Edge) contre le **déploiement**, pas seulement par inspection de code. L'utilisateur a déjà été trompé par des "c'était corrigé" non vérifiés — ne jamais déclarer quelque chose de réglé sans preuve de test.
-- **Cache-busting** : après toute modif CSS/JS, incrémenter le paramètre `?v=` dans `index.html` (références `styles.css`, `app.js`, `auth.js`), sinon l'utilisateur reste sur l'ancienne version en cache.
-- **Prévenir l'utilisateur** de faire un hard-refresh (Ctrl+Shift+R) après un déploiement CSS/JS (cache navigateur/PC).
-- Répondre en **français**. Tenir compte du contexte sénégalais (FCFA, téléphone/OM/Wave si un jour paiement — mais gratuit).
+L'utilisateur annonce le mot-clé et le budget ; l'assistant exécute à partir de la **dernière réponse** et rend un compte-rendu en français, taggé (ex. `[GIGO]`, `[MIGO]`).
 
-## 7. Où on s'est arrêté / prochaines étapes
+## 7. Règles opérationnelles (contraintes projet)
 
-### 🟡 TÂCHE EN COURS — Refonte du FOND « Liqueur Glace » (non implémentée à ce jour)
+- **GRATUIT UNIQUEMENT** : jamais de solution payante (Vercel Hobby, Supabase Free, pas de PSP/paywall). Si impossible gratuitement → alternative gratuite ou refus franc.
+- **Toujours VÉRIFIER avant de dire « corrigé »** : repro navigateur réel (Puppeteer/Edge) contre le **déploiement**, jamais simple inspection de code.
+- **Cache-busting** : après modif CSS/JS, incrémenter `?v=` dans `index.html` (`styles.css`, `app.js`, `auth.js`), sinon cache obsolète.
+- **Hard-refresh navigateur** (Ctrl+Shift+R) à communiquer après chaque déploiement CSS/JS.
+- Répondre en **français** ; contexte sénégalais (FCFA, téléphone), gratuit.
 
-- **Demande utilisateur (16/09/2026)** : changer le fond du site pour un fond **très moderne et très beau**, inspiré d'un site en ligne, qui valorise l'**effet "liquide glace"** (transparence/verre dépoli). GRATUIT, CSS pur uniquement.
-- **Recherche TERMINÉE (faite en ligne)** : la tendance 2025-2026 est le **Liquid Glass** (Apple Liquid Glass, glassmorphism) + palettes de **dégradés liquides vert-teal-lime** (ex. LiquidGradientGreenTeal) — parfaitement dans l'identité SamaCaisse.
-- **Leçon CLÉ des articles** : un "verre" ne se voit que s'il y a **une couleur saturée et vive DERRIÈRE** lui. Le fond actuel est très pâle (`linear-gradient(160deg,#f6faf7…)` + blobs `opacity:.55`, blur `rgba(255,255,255,.62)`) → le glass ne "lit" pas. Il faut un fond plus saturé (teal/émeraude/lime) pour que le verre transpire.
-- **Recette Liquid Glass (à appliquer)** : `backdrop-filter: blur(12-24px) saturate(150-180%)` + remplissage `rgba(255,255,255,.15-.70)` + **bordure hairline 1px** + **reflet intérieur haut** (inner highlight) + ombre douce. Borner à ~3 surfaces vitrées (perf mobile), fallback `prefers-reduced-motion`/`prefers-reduced-transparency`.
-- **Éléments concernés** : `body` background, `.ambient-one/two/three`, `.glass-card`, `.sidebar`, `.topbar`, cartes/panneaux glass (styles.css).
-- **À faire ensuite** : modifier `styles.css` (fond saturé + verre renforcé), incrémenter `?v=` dans `index.html`, déployer, **VÉRIFIER en navigateur réel contre le déploiement** (règle utilisateur), prévenir hard-refresh (Ctrl+Shift+R).
+## 8. Prochaines étapes
 
-### 🐞 NOUVEAU BUG SIGNALÉ (non diagnostiqué) — « je ne vois même pas ce que j'écris »
-
-- **Signalé le 16/09/2026 (session refonte fond)** : l'utilisateur ne voit **pas ce qu'il tape/écrit** par moment (peut toucher le shell/terminal, un champ de l'app, ou un voile/glass qui masque le texte de saisie — **à clarifier en priorité** au prochain retour, AVANT toute reprise, car c'est bloquant pour lui).
-- Le message MÊME du bug lui a empêché de voir ce qu'il écrivait → il a demandé une sauvegarde mémoire pour ne rien perdre.
-- Actions : demander à l'utilisateur **où exactement** il écrit (navigateur ? terminal PowerShell ? champ précis de l'app ?) ; reproduire en navigateur réel ; corriger puis VÉRIFIER côté déploiement avant de déclarer réglé.
-
-### 📌 INSTRUCTION UTILISATEUR (à respecter au retour) — « donne-moi la dernière réponse précédente »
-
-- Au retour (nouvelle session), après lecture de `AGENTS.md` + `MEMOIRE.md`, **reprendre EXACTEMENT là où on s'est arrêté** : la tâche de fond en cours ci-dessus (Refonte du FOND « Liquide Glace » — recherche TERMINÉE, **implémentation NON ENCORE FAITE**), et rappeler la/les dernière(s) réponse(s) précédente(s) avant de demander la suite.
-- Commencer la session par : redonner le point d'étape (% comblée) + la prochaine action, puis demander confirmation.
-
-### Contexte figé (ne pas oublier)
-- Les 2 bugs précédents (hamburger PC + connexion personnel) sont corrigés, déployés et VÉRIFIÉS (commit `6822753` poussé).
-- **Abandonner définitivement la piste "freemium/abonnement/paywall"** : 100% gratuit. Toute envie de monétisation → reconduite vers une **limite honnête et gratuite** (restrictions par compte/magasin côté API), jamais un paiement.
-- Autres idées/améliorations : les aborder selon les demandes explicites de l'utilisateur, en priorité la tâche en cours ci-dessus.
-
-## 8. Préférences à l'écoute
-
-- L'utilisateur donnera d'autres préférences au fil des sessions ; **les ajouter automatiquement ici** (habitudes, façon de régler les problèmes, préférences d'interface/langue) sans qu'il ait à le redemander.
-- Écouter les tournures parlées : l'utilisateur dicte ou emploie des formulations orales — reformuler précisément avant d'agir et confirmer.
-
----
-
-*Mis à jour : 16/09/2026.*
+1. **Nettoyage mémoires** : AGENTS.md/MEMOIRE.md → suivi technique seul (fait ici).
+2. **EXPLICATIONS-TECHNIQUES.md** → conclusions Liquid Glass (créé).
+3. **Implémentation Liquid Glass** conforme au modèle (voir EXPLICATIONS-TECHNIQUES.md) : SVG filter `#glass-distortion`, appliqué aux surfaces verre ; fond saturé derrière.
+4. Cache-busting + déploiement + **vérif navigateur réel** contre la prod.

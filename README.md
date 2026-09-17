@@ -1,4 +1,6 @@
-# SamaCaisse
+# SamaCaisse   --ambient-1: #0eacb4;
+  --ambient-2: #057052;
+  --ambient-3: #8cb92b;
 
 **La gestion commerciale simple, pensée pour les commerçants — comme Wave.**
 
