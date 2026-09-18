@@ -21,10 +21,25 @@
 body { --sidebar-w: 252px; --topbar-gap: 22px; }
 body:has(.sidebar.collapsed) { --sidebar-w: 72px; }
 .hidden { display: none !important; }
-body { margin: 0; min-width: 320px; color: var(--ink); background-image: url('images/fond.jpg'); background-size: cover; background-position: center; background-attachment: fixed; font-family: "DM Sans", sans-serif; }
+body { margin: 0; min-width: 320px; color: var(--ink); background-color: #cfe9d8; font-family: "DM Sans", sans-serif; }
+/* Fond photo sur calque fixe : ne se décolle jamais (background-attachment:fixed est ignoré sur mobile) */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image: url('images/fond.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  transition: transform .35s cubic-bezier(.2, .8, .3, 1);
+}
+/* Étirement élastique du fond aux limites du défilement */
+body.bg-pull-down::before { transform: scale(1.06) translateY(8px); }
+body.bg-pull-up::before { transform: scale(1.06) translateY(-8px); }
 button, select, input { font: inherit; }
 button { cursor: pointer; }
-.auth-screen { position: fixed; z-index: 50; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(108 188 150 / 23%); backdrop-filter: blur(18px); }.auth-screen.hidden { display: none; }.app-shell.locked { visibility: hidden; }.auth-card { width: min(410px, 100%); padding: 30px; }.auth-brand { padding: 0 0 38px; }.auth-card h1 { margin: 0; font: 800 26px Manrope, sans-serif; letter-spacing: -1.1px; }.auth-form { display: grid; gap: 15px; margin-top: 25px; }.auth-form .btn { width: 100%; min-height: 43px; margin-top: 4px; }.auth-error { min-height: 15px; margin: -3px 0 0; color: var(--red); font-size: 10px; }
+.auth-screen { position: fixed; z-index: 50; inset: 0; display: grid; place-items: center; padding: 20px; overflow-y: auto; overscroll-behavior: contain; background: rgba(108 188 150 / 23%); backdrop-filter: blur(18px); }.auth-screen.hidden { display: none; }.app-shell.locked { visibility: hidden; position: fixed; inset: 0; overflow: hidden; }.auth-card { width: min(410px, 100%); margin: auto; padding: 30px; }.auth-brand { padding: 0 0 38px; }.auth-card h1 { margin: 0; font: 800 26px Manrope, sans-serif; letter-spacing: -1.1px; }.auth-form { display: grid; gap: 15px; margin-top: 25px; }.auth-form .btn { width: 100%; min-height: 43px; margin-top: 4px; }.auth-error { min-height: 15px; margin: -3px 0 0; color: var(--red); font-size: 10px; }
 .auth-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 22px; padding: 4px; border-radius: 9px; background: #e6eee8; }.auth-mode { padding: 8px; border: 0; border-radius: 7px; color: var(--muted); background: transparent; font-size: 10px; font-weight: 700; }.auth-mode.active { color: var(--teal-dark); background: rgb(103 184 167 / 76%); box-shadow: 0 2px 8px rgb(121 143 134 / 49%); }.hidden-field { display: none !important; }
 .seller-mode .nav-item[data-view="products"], .seller-mode .nav-item[data-view="team"], .seller-mode .nav-item[data-view="reports"], .seller-mode .management-label { display: none; }.seller-mode .content-grid { grid-template-columns: 1fr; }.seller-mode .content-grid > article:first-child, .seller-mode .activity-panel { display: none; }.seller-mode .stats-grid { grid-template-columns: repeat(3, 1fr); }.seller-mode .store-selector, .seller-mode .notification { display: none; }.seller-mode .profile-chip [data-action="edit-profile"] { display: none; }
 .seller-mode [data-cancel-sale] { display: none; }.loading-state { display: grid; gap: 8px; padding: 50px; text-align: center; }.loading-state strong { font: 700 15px Manrope, sans-serif; }.loading-state span { color: var(--muted); font-size: 11px; }
@@ -435,6 +450,11 @@ html, body { overflow-x: hidden; }
 .store-selector-trigger[aria-expanded="true"] .store-selector-caret{
   transform:rotate(180deg);
 }
+#store-selector-label{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
 .store-selector-menu{
   position:absolute;
   top:calc(100% + 8px);
@@ -732,20 +752,41 @@ background: linear-gradient(145deg, rgb(50 209 155 / 72%), rgba(255, 255, 255, .
     display:none;
   }
 
+  /* Anti-débordement : le fil d'Ariane est redondant avec le titre de page,
+     on le masque et on verrouille chaque bloc en ellipsis. */
   .breadcrumb{
-    max-width:96px;
+    display:none;
+  }
+
+  .header-navigation{
+    flex:1 1 auto;
+    min-width:0;
     overflow:hidden;
-    text-overflow:ellipsis;
-    white-space:nowrap;
-    font-size:9px;
+  }
+
+  .enterprise-badge{
+    flex:0 1 auto;
+    min-width:0;
   }
 
   .topbar-actions{
+    flex:0 1 auto;
+    min-width:0;
     gap:8px;
   }
 
   .store-selector{
+    flex:0 1 auto;
+    min-width:0;
     padding:0 10px;
+  }
+
+  #store-selector-label{
+    display:block;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    max-width:90px;
   }
 
   .mobile-menu{
@@ -797,6 +838,39 @@ background: linear-gradient(145deg, rgb(50 209 155 / 72%), rgba(255, 255, 255, .
 .auth-toggle-link:hover {
   text-decoration: underline;
 }
+
+/* Bouton secondaire bien visible : créer son espace (ne pas rater à l'inscription) */
+#auth-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1.5px solid var(--teal);
+  border-radius: 999px;
+  color: var(--teal-dark);
+  background: rgba(255, 255, 255, .65);
+  font-weight: 700;
+  text-decoration: none;
+}
+#auth-toggle:hover {
+  background: var(--lime-soft);
+  text-decoration: none;
+}
+
+/* Petit guide sous le titre : inciter à créer un espace avant de se connecter */
+.auth-hint {
+  margin: 10px 0 0;
+  padding: 9px 12px;
+  border-radius: 10px;
+  color: var(--teal-dark);
+  background: rgba(205, 234, 223, .55);
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: center;
+}
+.auth-hint strong { font-weight: 700; }
 
 .owner-summary {
   margin: 18px 0;
@@ -978,6 +1052,8 @@ background: linear-gradient(145deg, rgb(50 209 155 / 72%), rgba(255, 255, 255, .
 .filter-input.liquid-glass { background: rgba(255,255,255,.55); backdrop-filter: blur(14px) saturate(180%) url(#glass-distortion); -webkit-backdrop-filter: blur(14px) saturate(180%) url(#glass-distortion); }
 
 .page-content .page-heading h1 { color: white; }
+.page-content .eyebrow { color: rgba(255, 255, 255, .95); text-shadow: 0 1px 8px rgba(11, 42, 36, .45); }
+.page-content .period-label { color: rgba(255, 255, 255, .95); }
 .page-content .p.eyebrow { color: rgb(214, 12, 12); }
 .page-content .subtle { color: rgba(255, 255, 255, 0.714); }
 

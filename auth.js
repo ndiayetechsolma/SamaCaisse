@@ -10,6 +10,36 @@
   const loginIntro = document.getElementById('login-intro');
   const authTabs = document.querySelectorAll('[data-auth-mode]');
 
+  // Étirement élastique du fond fixe quand on tire au-delà des limites de défilement
+  const bindBgStretch = scroller => {
+    if (!scroller || scroller.dataset.stretchBound) return;
+    scroller.dataset.stretchBound = '1';
+    let timer = null;
+    const pull = direction => {
+      document.body.classList.remove('bg-pull-down', 'bg-pull-up');
+      void document.body.offsetWidth;
+      document.body.classList.add(direction);
+      clearTimeout(timer);
+      timer = setTimeout(() => document.body.classList.remove('bg-pull-down', 'bg-pull-up'), 300);
+    };
+    const atTop = () => scroller.scrollTop <= 0;
+    const atBottom = () => scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 1;
+    scroller.addEventListener('wheel', event => {
+      if (event.deltaY < 0 && atTop()) pull('bg-pull-down');
+      else if (event.deltaY > 0 && atBottom()) pull('bg-pull-up');
+    }, { passive: true });
+    let touchY = null;
+    scroller.addEventListener('touchstart', event => { touchY = event.touches[0].clientY; }, { passive: true });
+    scroller.addEventListener('touchmove', event => {
+      if (touchY === null) return;
+      const delta = event.touches[0].clientY - touchY;
+      if (delta > 0 && atTop()) pull('bg-pull-down');
+      else if (delta < 0 && atBottom()) pull('bg-pull-up');
+    }, { passive: true });
+  };
+  bindBgStretch(authScreen);
+  bindBgStretch(onboardingScreen);
+
   const accountStorageKey = 'samacaisse_compte';
   const readStoredAccount = () => { try { return JSON.parse(localStorage.getItem(accountStorageKey) || 'null'); } catch { return null; } };
   const saveStoredAccount = session => localStorage.setItem(accountStorageKey, JSON.stringify(session));
@@ -78,6 +108,9 @@
 
   const defaultButtonText = () => (authMode === 'personnel' ? 'Ouvrir ma session' : registerMode ? 'Créer mon espace' : 'Se connecter');
 
+  const loginHint = document.getElementById('login-hint');
+  const syncHint = () => { if (loginHint) loginHint.classList.toggle('hidden', registerMode || authMode !== 'compte'); };
+
   authTabs.forEach(button => button.addEventListener('click', () => {
     authMode = button.dataset.authMode;
     authTabs.forEach(item => item.classList.toggle('active', item === button));
@@ -93,6 +126,7 @@
       document.getElementById(id).toggleAttribute('required', authMode === 'compte');
     });
     loginButton.textContent = defaultButtonText();
+    syncHint();
   }));
 
   toggleLink.addEventListener('click', event => {
@@ -107,6 +141,7 @@
     error.textContent = '';
     form.reset();
     loginButton.textContent = defaultButtonText();
+    syncHint();
   });
 
   form.addEventListener('submit', async event => {

@@ -33,7 +33,7 @@ async function handleCreate(request, response, identity) {
   const entrepriseId = store.entreprise_id;
 
   let finalProductId = null;
-  let finalProductName = String(nom_produit || '').trim();
+  let finalProductName = String(nom_produit || '').trim() || 'Vente';
   let decrementedStock = null;
 
   if (produit_id) {
@@ -60,8 +60,6 @@ async function handleCreate(request, response, identity) {
     finalProductName = product.nom;
     decrementedStock = updated[0].stock;
   }
-
-  if (!finalProductName) return response.status(400).json({ error: 'Nom du produit requis.' });
 
   let adminNom = null;
   if (identity.type === 'compte') {

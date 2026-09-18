@@ -537,12 +537,13 @@
     const amount = Number(modal.querySelector('#modal-amount')?.value || 0);
     const required = val => { if (!val) { showToast('Veuillez renseigner tous les champs requis.'); return false; } return true; };
     if (type === 'sale') {
-      const productName = modal.querySelector('#modal-product').value.trim();
+      const rawProductName = modal.querySelector('#modal-product').value.trim();
+      const productName = rawProductName || 'Vente';
       const quantite = Number(modal.querySelector('#modal-quantite').value || 1);
       const magId = state.isPersonnel ? state.store : modal.querySelector('#modal-store').value;
       const payment = modal.querySelector('#modal-payment').value;
-      if (!required(productName) || !magId || amount <= 0 || quantite <= 0) { showToast('Renseignez le produit, le montant et la boutique.'); return; }
-      const matchedProduct = state.produits.find(item => item.nom === productName && item.actif !== false && (item.magasin_id === magId || item.magasin_id === null));
+      if (!magId || amount <= 0 || quantite <= 0) { showToast('Renseignez le montant et la boutique.'); return; }
+      const matchedProduct = rawProductName ? state.produits.find(item => item.nom === rawProductName && item.actif !== false && (item.magasin_id === magId || item.magasin_id === null)) : null;
       const { response, payload } = await API('/api/sales', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { produit_id: matchedProduct?.id || null, nom_produit: productName, quantite, montant: amount, mode_paiement: payment, magasin_id: magId } });
       if (!response.ok) { showToast(payload.error || 'Vente impossible.'); return; }
       modal.remove();
