@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.ndiayetech.samacaisse",
+      "sha256_cert_fingerprints": [
+        "AB:B0:12:C1:B8:8A:E0:8F:CD:46:A0:77:28:03:33:DA:8E:FD:52:31:69:01:FC:1A:64:60:98:2D:12:DD:44:BF"
+      ]
+    }
+  }
+]
