@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 import { signCompteToken } from './_lib/auth.js';
+import { rateLimit } from './_lib/ratelimit.js';
 
 const client = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
@@ -41,6 +42,9 @@ const seedDepenses = [
 
 export default async function handler(request, response) {
   if (request.method !== 'POST') return response.status(405).json({ error: 'Method not allowed' });
+  if (!rateLimit(request, { key: 'demo', limit: 20, windowMs: 3600000 }).allowed) {
+    return response.status(429).json({ error: 'Trop de démos demandées. Réessayez plus tard.' });
+  }
 
   try {
     const { data: existing } = await client

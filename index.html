@@ -8,6 +8,14 @@
   <meta property="og:title" content="SamaCaisse · Gestion commerciale" />
   <meta property="og:description" content="La gestion commerciale simple, pensée pour les commerçants. Ventes, caisse, stock, dépenses et personnel." />
   <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://samacaisse-com.vercel.app/app" />
+  <meta property="og:image" content="https://samacaisse-com.vercel.app/icon-512.png" />
+  <meta property="og:image:alt" content="SamaCaisse — gestion commerciale" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="SamaCaisse · Gestion commerciale" />
+  <meta name="twitter:description" content="Ventes, caisse, stock, dépenses et personnel depuis votre téléphone." />
+  <meta name="twitter:image" content="https://samacaisse-com.vercel.app/icon-512.png" />
+  <link rel="canonical" href="https://samacaisse-com.vercel.app/app" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%232f746e'/%3E%3Ctext x='32' y='44' font-family='Manrope,Arial,sans-serif' font-size='34' font-weight='800' fill='white' text-anchor='middle'%3ES%3C/text%3E%3C/svg%3E" />
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="apple-touch-icon" href="/icon-180.png" />
@@ -19,8 +27,9 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260917-4">
+  <link rel="stylesheet" href="styles.css?v=20260917-6">
 </head>
 
 <body>
@@ -81,6 +90,12 @@
         <div class="field admin-field register-field hidden-field">
           <label for="register-name">Votre nom</label>
           <input id="register-name" type="text" autocomplete="name" placeholder="Exemple : Amadou Mbaye">
+        </div>
+
+        <div class="field bot-trap" aria-hidden="true">
+          <label for="register-website">Site web</label>
+          <input id="register-website" type="text" autocomplete="off" tabindex="-1" />
+          <input id="form-debut" type="hidden" value="" />
         </div>
 
         <div class="field admin-field">
@@ -215,7 +230,7 @@
 
         <div class="nav-group">
 
-        <button class="nav-item active" data-view="dashboard">
+        <button class="nav-item active" data-view="dashboard" data-tooltip="Tableau de bord">
           <span class="nav-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="3" y="3" width="7" height="7" rx="1.5"/>
@@ -227,7 +242,7 @@
           <span class="nav-text">Tableau de bord</span>
         </button>
 
-        <button class="nav-item" data-view="sales">
+        <button class="nav-item" data-view="sales" data-tooltip="Ventes">
           <span class="nav-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="3 17 9 11 13 15 21 7"/>
@@ -237,7 +252,7 @@
           <span class="nav-text">Ventes</span>
         </button>
 
-        <button class="nav-item" data-view="cash">
+        <button class="nav-item" data-view="cash" data-tooltip="Caisses">
           <span class="nav-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 12V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3"/>
@@ -248,7 +263,7 @@
           <span class="nav-text">Caisses</span>
         </button>
 
-        <button class="nav-item" data-view="expenses">
+        <button class="nav-item" data-view="expenses" data-tooltip="Dépenses">
           <span class="nav-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="3 7 9 13 13 9 21 17"/>
@@ -264,7 +279,7 @@
 
         <div class="nav-group">
 
-        <button class="nav-item" data-view="products">
+        <button class="nav-item" data-view="products" data-tooltip="Produits">
           <span class="nav-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 8l-9-5-9 5 9 5 9-5Z"/>
@@ -275,7 +290,7 @@
           <span class="nav-text">Produits</span>
         </button>
 
-        <button class="nav-item" data-view="team">
+        <button class="nav-item" data-view="team" data-tooltip="Personnel">
           <span class="nav-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -287,7 +302,7 @@
           <span class="nav-text">Personnel</span>
         </button>
 
-        <button class="nav-item" data-view="reports">
+        <button class="nav-item" data-view="reports" data-tooltip="Rapports">
           <span class="nav-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="12" y1="20" x2="12" y2="10"/>
@@ -424,6 +439,8 @@
             <h4>Informations</h4>
             <div class="app-footer-links">
               <a href="about.html" target="_blank" rel="noopener">À propos</a>
+              <a href="/rgpd.html" target="_blank" rel="noopener">Confidentialité</a>
+              <a href="/cgu.html" target="_blank" rel="noopener">CGU</a>
               <a href="mailto:ablaye.ndiaye.etude@gmail.com">ablaye.ndiaye.etude@gmail.com</a>
               <a href="tel:+221762167959">+221 76 216 79 59</a>
             </div>
@@ -433,7 +450,7 @@
 
         <div class="app-footer-bottom">
           <span>© 2026 SamaCaisse. Tous droits réservés.</span>
-          <span><a href="about.html" target="_blank" rel="noopener">À propos</a> · <a href="mailto:ablaye.ndiaye.etude@gmail.com">Contact</a></span>
+          <span><a href="about.html" target="_blank" rel="noopener">À propos</a> · <a href="/rgpd.html" target="_blank" rel="noopener">Confidentialité</a> · <a href="/cgu.html" target="_blank" rel="noopener">CGU</a> · <a href="#" id="cookies-link-app">Cookies</a> · <a href="mailto:ablaye.ndiaye.etude@gmail.com">Contact</a></span>
         </div>
       </footer>
 
@@ -445,10 +462,38 @@
 
   <div class="toast" id="toast"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js"></script>
-  <script src="auth.js?v=20260917-4"></script>
-  <script src="app.js?v=20260917-3"></script>
+  <div class="cookie-banner hidden" id="cookie-banner" role="dialog" aria-label="Choix des cookies">
+    <p><strong>Les cookies, c'est quoi ?</strong> De petits rappels que le site garde dans votre téléphone. Ici, ils servent juste à retenir votre choix et, si vous acceptez, à compter les visites sans vous identifier. Pas de publicité, rien à vendre. <a href="/rgpd.html">En savoir plus</a></p>
+    <div class="cookie-actions">
+      <button type="button" class="btn btn-primary" id="cookie-accept">Accepter</button>
+      <button type="button" class="btn btn-light" id="cookie-refuse">Refuser</button>
+    </div>
+  </div>
+
+  <script>
+    // Consentement cookies : la mesure d'audience ne part que si acceptée.
+    window.samacaisseConsent = (() => {
+      const KEY = 'samacaisse_consent_v1';
+      const read = () => { try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch { return null; } };
+      const banner = () => document.getElementById('cookie-banner');
+      const api = {
+        show: () => banner()?.classList.remove('hidden'),
+        save: stats => { localStorage.setItem(KEY, JSON.stringify({ statistiques: !!stats, date: new Date().toISOString() })); banner()?.classList.add('hidden'); },
+        statsAllowed: () => read()?.statistiques === true,
+        ping: page => { if (!api.statsAllowed()) return; fetch('/api/analytics', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ page }) }).catch(() => {}); }
+      };
+      document.getElementById('cookie-accept')?.addEventListener('click', () => { api.save(true); api.ping('/app'); });
+      document.getElementById('cookie-refuse')?.addEventListener('click', () => api.save(false));
+      document.getElementById('cookies-link-app')?.addEventListener('click', event => { event.preventDefault(); api.show(); });
+      if (!read()) setTimeout(() => api.show(), 1200);
+      else api.ping('/app');
+      return api;
+    })();
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="config.js"></script>
+  <script defer src="auth.js?v=20260917-4"></script>
+  <script defer src="app.js?v=20260917-3"></script>
 
 </body>
 </html>

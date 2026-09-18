@@ -8,6 +8,14 @@
   <meta property="og:title" content="SamaCaisse · Gestion commerciale" />
   <meta property="og:description" content="Ventes, caisse, stock, dépenses et personnel. La gestion commerciale simple, pensée pour les commerçants." />
   <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://samacaisse-com.vercel.app/" />
+  <meta property="og:image" content="https://samacaisse-com.vercel.app/icon-512.png" />
+  <meta property="og:image:alt" content="SamaCaisse — gestion commerciale" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="SamaCaisse · Gestion commerciale simple" />
+  <meta name="twitter:description" content="Ventes, caisse, stock, dépenses et personnel depuis votre téléphone." />
+  <meta name="twitter:image" content="https://samacaisse-com.vercel.app/icon-512.png" />
+  <link rel="canonical" href="https://samacaisse-com.vercel.app/" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%232f746e'/%3E%3Ctext x='32' y='44' font-family='Manrope,Arial,sans-serif' font-size='34' font-weight='800' fill='white' text-anchor='middle'%3ES%3C/text%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -111,6 +119,23 @@
     .foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
     .foot a { color: var(--teal-dark); text-decoration: none; font-weight: 600; }
     .demo-error { margin-top: 14px; color: #c0392b; font-size: 12.5px; display: none; }
+    .cookie-banner {
+      position: fixed; z-index: 60; left: 16px; right: 16px; bottom: 16px;
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+      max-width: 720px; margin: 0 auto; padding: 16px 18px; border-radius: 16px;
+      background: rgba(255, 255, 255, .94); border: 1px solid var(--line);
+      box-shadow: 0 18px 44px -10px rgba(29, 77, 73, .25);
+    }
+    .cookie-banner.hidden { display: none; }
+    .cookie-banner p { flex: 1 1 220px; margin: 0; color: var(--ink); font-size: 12px; line-height: 1.55; }
+    .cookie-banner p a { color: var(--teal-dark); font-weight: 700; }
+    .cookie-actions { display: flex; gap: 8px; }
+    .cookie-actions button {
+      min-height: 36px; padding: 0 16px; border-radius: 999px;
+      font-size: 11px; font-weight: 700; cursor: pointer;
+    }
+    .cookie-actions .accept { color: white; background: var(--teal); border: 0; }
+    .cookie-actions .refuse { color: var(--teal-dark); background: white; border: 1.5px solid var(--line); }
     @media (max-width: 900px) {
       .hero { grid-template-columns: 1fr; padding: 44px 0 60px; }
       .hero-copy h1 { font-size: 33px; }
@@ -173,10 +198,42 @@
   <footer>
     <div class="container foot">
       <span>© 2026 SamaCaisse — La gestion commerciale simple.</span>
-      <span><a href="/app">Espace propriétaire</a></span>
+      <span><a href="/app">Espace propriétaire</a> · <a href="/rgpd.html">Confidentialité</a> · <a href="/cgu.html">CGU</a> · <a href="#" id="cookies-link">Cookies</a></span>
     </div>
   </footer>
 
+  <div class="cookie-banner" id="cookie-banner" role="dialog" aria-label="Choix des cookies" style="display:none">
+    <p><strong>Les cookies, c'est quoi ?</strong> De petits rappels que le site garde dans votre téléphone. Ici, ils servent juste à retenir votre choix et, si vous acceptez, à compter les visites sans vous identifier. Pas de publicité, rien à vendre. <a href="/rgpd.html">En savoir plus</a></p>
+    <div class="cookie-actions">
+      <button type="button" class="accept" id="cookie-accept">Accepter</button>
+      <button type="button" class="refuse" id="cookie-refuse">Refuser</button>
+    </div>
+  </div>
+
+  <script>
+    // Consentement cookies : la mesure d'audience ne part que si acceptée.
+    (() => {
+      const KEY = 'samacaisse_consent_v1';
+      const banner = document.getElementById('cookie-banner');
+      const read = () => { try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch { return null; } };
+      const ping = () => {
+        if (read()?.statistiques !== true) return;
+        fetch('/api/analytics', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ page: '/' }) }).catch(() => {});
+      };
+      document.getElementById('cookie-accept').addEventListener('click', () => {
+        localStorage.setItem(KEY, JSON.stringify({ statistiques: true, date: new Date().toISOString() }));
+        banner.style.display = 'none';
+        ping();
+      });
+      document.getElementById('cookie-refuse').addEventListener('click', () => {
+        localStorage.setItem(KEY, JSON.stringify({ statistiques: false, date: new Date().toISOString() }));
+        banner.style.display = 'none';
+      });
+      document.getElementById('cookies-link').addEventListener('click', event => { event.preventDefault(); banner.style.display = 'flex'; });
+      if (!read()) setTimeout(() => { banner.style.display = 'flex'; }, 1200);
+      else ping();
+    })();
+  </script>
   <script>
     const button = document.getElementById('demo-button');
     const error = document.getElementById('demo-error');

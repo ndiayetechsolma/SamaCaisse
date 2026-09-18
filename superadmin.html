@@ -26,8 +26,12 @@
   * { box-sizing: border-box; }
   body {
     margin: 0; min-height: 100vh; color: var(--ink);
-    background: linear-gradient(180deg, #f4f8f4, #e8f0ea);
+    background-color: #cfe9d8;
     font-family: 'DM Sans', Arial, sans-serif;
+  }
+  body::before {
+    content: ""; position: fixed; inset: 0; z-index: -1;
+    background-image: url('images/fond.jpg'); background-size: cover; background-position: center; background-repeat: no-repeat;
   }
   .hidden { display: none !important; }
   button, input { font: inherit; }
@@ -36,7 +40,10 @@
   .login-screen { min-height: 100vh; display: grid; place-items: center; padding: 20px; }
   .login-card {
     width: min(380px, 100%); padding: 32px; border-radius: 18px;
-    background: rgba(255,255,255,.85); border: 1px solid var(--line); box-shadow: var(--shadow);
+    background: linear-gradient(145deg, rgba(255,255,255,.72), rgba(255,255,255,.42));
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    backdrop-filter: blur(18px) saturate(160%);
+    border: 1px solid rgba(255,255,255,.6); box-shadow: var(--shadow);
   }
   .login-card h1 { margin: 0 0 6px; font: 800 22px Manrope, sans-serif; letter-spacing: -.8px; }
   .login-card p { margin: 0 0 22px; color: var(--muted); font-size: 12px; }
@@ -63,12 +70,12 @@
   .dash-header p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
   .logout-btn { border: 1px solid var(--line); background: white; color: var(--muted); border-radius: 999px; padding: 9px 16px; font-size: 11px; font-weight: 700; }
 
-  .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 26px; }
-  .stat-box { padding: 16px 18px; border-radius: 14px; background: white; border: 1px solid var(--line); }
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 26px; }
+  .stat-box { padding: 16px 18px; border-radius: 14px; background: linear-gradient(145deg, rgba(255,255,255,.66), rgba(255,255,255,.38)); -webkit-backdrop-filter: blur(14px) saturate(160%); backdrop-filter: blur(14px) saturate(160%); border: 1px solid rgba(255,255,255,.6); }
   .stat-box span { display: block; color: var(--muted); font-size: 11px; }
   .stat-box strong { display: block; margin-top: 6px; font: 800 22px Manrope, sans-serif; }
 
-  .compte-card { margin-bottom: 14px; padding: 18px 20px; border-radius: 16px; background: white; border: 1px solid var(--line); }
+  .compte-card { margin-bottom: 14px; padding: 18px 20px; border-radius: 16px; background: linear-gradient(145deg, rgba(255,255,255,.66), rgba(255,255,255,.38)); -webkit-backdrop-filter: blur(14px) saturate(160%); backdrop-filter: blur(14px) saturate(160%); border: 1px solid rgba(255,255,255,.6); }
   .compte-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
   .compte-top strong { display: block; font: 700 15px Manrope, sans-serif; }
   .compte-top span { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; }
@@ -126,6 +133,7 @@
       <div class="stat-box"><span>Comptes</span><strong id="stat-comptes">—</strong></div>
       <div class="stat-box"><span>Entreprises</span><strong id="stat-entreprises">—</strong></div>
       <div class="stat-box"><span>Boutiques</span><strong id="stat-magasins">—</strong></div>
+      <div class="stat-box"><span>Visites 30 j</span><strong id="stat-visites">—</strong></div>
     </div>
 
     <div id="comptes-list"></div>
@@ -210,6 +218,8 @@
     const { response, payload } = await api('/api/superadmin');
     if (!response.ok) { showLogin(); return; }
     render(payload);
+    const stats = await api('/api/analytics');
+    if (stats.response.ok) document.getElementById('stat-visites').textContent = stats.payload.total_30j ?? '—';
   };
 
   loginForm.addEventListener('submit', async event => {

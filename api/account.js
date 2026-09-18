@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { createClient } from '@supabase/supabase-js';
 import { signCompteToken, getComptePayload } from './_lib/auth.js';
+import { rateLimit, isHoneypotFilled, isTooFast } from './_lib/ratelimit.js';
 
 const client = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
@@ -42,6 +43,12 @@ async function handlePost(request, response) {
 }
 
 async function handleCreate(request, response) {
+  if (!rateLimit(request, { key: 'compte-create', limit: 5, windowMs: 3600000 }).allowed) {
+    return response.status(429).json({ error: 'Trop de tentatives. Réessayez dans une heure.' });
+  }
+  if (isHoneypotFilled(request.body) || isTooFast(request.body)) {
+    return response.status(400).json({ error: 'Requête invalide.' });
+  }
   const { nom, email, password } = request.body || {};
   const normalizedEmail = String(email || '').trim().toLowerCase();
   if (!nom?.trim() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(normalizedEmail) || String(password || '').length < 8) {
@@ -65,6 +72,9 @@ async function handleCreate(request, response) {
 }
 
 async function handleLogin(request, response) {
+  if (!rateLimit(request, { key: 'compte-login', limit: 20, windowMs: 600000 }).allowed) {
+    return response.status(429).json({ error: 'Trop de tentatives. Réessayez dans quelques minutes.' });
+  }
   const { email, password } = request.body || {};
   if (!email?.trim() || !password) return response.status(400).json({ error: 'Email et mot de passe requis.' });
 

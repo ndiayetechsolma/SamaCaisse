@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, follow" />
+  <meta name="description" content="SamaCaisse — page introuvable. Retournez à l'accueil ou à votre espace." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%232f746e'/%3E%3Ctext x='32' y='44' font-family='Manrope,Arial,sans-serif' font-size='34' font-weight='800' fill='white' text-anchor='middle'%3ES%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <title>SamaCaisse · Page introuvable (404)</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'DM Sans', Arial, sans-serif;
+      color: #16231c;
+      background-color: #cfe9d8;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+    }
+    body::before {
+      content: ""; position: fixed; inset: 0; z-index: -1;
+      background-image: url('images/fond.jpg'); background-size: cover; background-position: center; background-repeat: no-repeat;
+    }
+    .card {
+      width: min(420px, 100%);
+      text-align: center;
+      background: linear-gradient(145deg, rgba(255,255,255,.72), rgba(255,255,255,.42));
+      -webkit-backdrop-filter: blur(18px) saturate(160%);
+      backdrop-filter: blur(18px) saturate(160%);
+      border: 1px solid rgba(255,255,255,.6);
+      border-radius: 20px;
+      padding: 40px 30px;
+      box-shadow: 0 8px 32px -8px rgba(62,92,81,.16), inset 0 1px 0 rgba(255,255,255,.85);
+    }
+    .mark {
+      width: 56px; height: 56px; border-radius: 50%;
+      display: grid; place-items: center; margin: 0 auto 18px;
+      background: linear-gradient(145deg, #3a8c85, #1f4640);
+      color: #eafaf3; font: 800 24px Manrope, sans-serif;
+    }
+    h1 { font: 800 22px Manrope, sans-serif; letter-spacing: -.8px; margin-bottom: 8px; }
+    p { color: #6b7a74; font-size: 13px; line-height: 1.6; margin-bottom: 24px; }
+    .actions { display: grid; gap: 10px; }
+    a {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-height: 42px; padding: 0 18px; border-radius: 999px;
+      font-size: 12px; font-weight: 700; text-decoration: none;
+    }
+    a.solid { color: white; background: #124238; }
+    a.ghost { color: #0b2a24; border: 1.5px solid #124238; background: transparent; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="mark">S</div>
+    <h1>Oups, page introuvable.</h1>
+    <p>Le lien que vous avez suivi n'existe plus ou a été déplacé. Retournez à l'accueil ou ouvrez votre espace.</p>
+    <div class="actions">
+      <a class="solid" href="/">Retour à l'accueil</a>
+      <a class="ghost" href="/app">Ouvrir mon espace</a>
+    </div>
+  </div>
+</body>
+</html>

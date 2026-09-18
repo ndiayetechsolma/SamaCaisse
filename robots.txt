@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /superadmin
+Disallow: /superadmin.html
+
+Sitemap: https://samacaisse-com.vercel.app/sitemap.xml

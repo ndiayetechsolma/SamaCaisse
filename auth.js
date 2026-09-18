@@ -132,6 +132,7 @@
   toggleLink.addEventListener('click', event => {
     event.preventDefault();
     registerMode = !registerMode;
+    if (registerMode) document.getElementById('form-debut').value = String(Date.now());
     document.querySelectorAll('.register-field').forEach(item => item.classList.toggle('hidden-field', !registerMode));
     loginTitle.textContent = registerMode ? 'Créez votre espace.' : 'Bienvenue dans votre espace.';
     loginIntro.textContent = registerMode
@@ -169,7 +170,11 @@
           const { response, payload } = await api('/api/account', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'create', nom, email, password })
+            body: JSON.stringify({
+              action: 'create', nom, email, password,
+              site_web: document.getElementById('register-website').value,
+              form_debut: Number(document.getElementById('form-debut').value || 0)
+            })
           });
           if (!response.ok) { error.textContent = payload.error || 'Impossible de créer le compte.'; return; }
           window.solmaCompteSession = payload;

@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import { SignJWT } from 'jose';
 import { createClient } from '@supabase/supabase-js';
 import { getSession } from './_lib/auth.js';
+import { rateLimit } from './_lib/ratelimit.js';
 
 const client = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 const secret = new TextEncoder().encode(process.env.PERSONNEL_SESSION_SECRET || '');
@@ -20,6 +21,9 @@ export default async function handler(request, response) {
 
 async function handleLogin(request, response) {
   if (!process.env.PERSONNEL_SESSION_SECRET) return response.status(500).json({ error: 'Personnel session secret is not configured' });
+  if (!rateLimit(request, { key: 'personnel-login', limit: 10, windowMs: 600000 }).allowed) {
+    return response.status(429).json({ error: 'Trop de tentatives. Réessayez dans quelques minutes.' });
+  }
 
   const { telephone, pin } = request.body || {};
   const normalizedTelephone = normalizePhone(telephone);

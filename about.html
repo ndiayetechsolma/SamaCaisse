@@ -3,30 +3,41 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<meta name="description" content="À propos de SamaCaisse — la gestion commerciale simple, et de son créateur." />
-<title>À propos · SamaCaisse</title>
+<meta name="description" content="À propos de SamaCaisse : le problème des commerçants, ce que change l'application, visite guidée et créateur." />
+<link rel="canonical" href="https://samacaisse-com.vercel.app/about.html" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%232f746e'/%3E%3Ctext x='32' y='44' font-family='Manrope,Arial,sans-serif' font-size='34' font-weight='800' fill='white' text-anchor='middle'%3ES%3C/text%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+<title>À propos · SamaCaisse</title>
 <style>
   :root {
-    --ink: #16241f;
+    --ink: #0d1412;
     --muted: #6b7a74;
     --line: rgba(22, 36, 31, .12);
     --teal: #124238;
     --teal-dark: #0b2a24;
     --lime: #cdeadf;
     --lime-soft: #e8f5f0;
-    --neutral-soft: #e8ebe9;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: 'DM Sans', Arial, sans-serif;
     color: var(--ink);
-    background: linear-gradient(180deg, #f6f9f7, #e9f1ec);
+    background-color: #cfe9d8;
     min-height: 100vh;
   }
-  a { color: var(--teal); }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background-image: url('images/fond.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+  a { color: var(--teal-dark); }
   .container { max-width: 880px; margin: 0 auto; padding: 0 24px; }
 
   header { padding: 22px 0; }
@@ -40,34 +51,40 @@
   .brand b { display: block; font: 700 14px Manrope, sans-serif; }
   .back-link { font-size: 12.5px; font-weight: 600; text-decoration: none; }
 
-  .hero { padding: 40px 0 20px; }
-  .eyebrow { color: var(--teal); font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 10px; }
-  .hero h1 { font: 800 34px/1.2 Manrope, sans-serif; letter-spacing: -1px; margin-bottom: 14px; }
-  .hero p.lead { color: var(--muted); font-size: 15px; line-height: 1.65; max-width: 620px; }
+  .hero { padding: 40px 0 8px; }
+  .eyebrow { color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 10px; text-shadow: 0 1px 8px rgba(11,42,36,.45); }
+  .hero h1 { font: 800 34px/1.2 Manrope, sans-serif; letter-spacing: -1px; margin-bottom: 14px; color: #fff; text-shadow: 0 2px 14px rgba(11,42,36,.4); }
+  .hero p.lead { color: rgba(255,255,255,.92); font-size: 15px; line-height: 1.65; max-width: 620px; text-shadow: 0 1px 8px rgba(11,42,36,.4); }
 
-  section.block { padding: 34px 0; border-top: 1px solid var(--line); }
-  section.block h2 { font: 700 19px Manrope, sans-serif; letter-spacing: -.4px; margin-bottom: 14px; }
-  section.block p { color: #384740; font-size: 14px; line-height: 1.75; margin-bottom: 12px; }
-  section.block p:last-child { margin-bottom: 0; }
-
-  .founder-card {
-    display: flex; gap: 18px; align-items: flex-start; padding: 22px;
-    border-radius: 16px; background: rgba(255,255,255,.75); border: 1px solid var(--line);
+  .glass {
+    border-radius: 18px;
+    background: linear-gradient(145deg, rgba(255,255,255,.58), rgba(255,255,255,.24));
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    backdrop-filter: blur(18px) saturate(160%);
+    border: 1px solid rgba(255,255,255,.6);
+    box-shadow: 0 8px 32px -8px rgba(62,92,81,.16), inset 0 1px 0 rgba(255,255,255,.85);
+    padding: 26px;
     margin-top: 18px;
   }
+  .glass h2 { font: 700 18px Manrope, sans-serif; letter-spacing: -.4px; margin-bottom: 12px; }
+  .glass p { color: #2c3a34; font-size: 14px; line-height: 1.75; margin-bottom: 12px; }
+  .glass p:last-child { margin-bottom: 0; }
+  .glass strong { color: var(--ink); }
+
+  .founder { display: flex; gap: 18px; align-items: flex-start; }
   .founder-initials {
     flex: 0 0 auto; width: 52px; height: 52px; border-radius: 50%;
     display: grid; place-items: center; background: var(--lime); color: var(--teal-dark);
     font: 800 17px Manrope, sans-serif;
   }
-  .founder-card strong { display: block; font: 700 15px Manrope, sans-serif; margin-bottom: 2px; }
-  .founder-card span.role { display: block; color: var(--muted); font-size: 12px; margin-bottom: 10px; }
-  .founder-card p { font-size: 13.5px; color: #384740; line-height: 1.7; margin: 0; }
+  .founder strong { display: block; font: 700 15px Manrope, sans-serif; margin-bottom: 2px; }
+  .founder span.role { display: block; color: var(--muted); font-size: 12px; margin-bottom: 10px; }
+  .founder p { font-size: 13.5px; }
 
-  .contact-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 6px; }
+  .contact-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 14px; }
   .contact-item {
     display: flex; align-items: center; gap: 12px; padding: 16px 18px;
-    border-radius: 14px; background: rgba(255,255,255,.75); border: 1px solid var(--line);
+    border-radius: 14px; background: rgba(255,255,255,.55); border: 1px solid rgba(255,255,255,.6);
     text-decoration: none; color: var(--ink); transition: .18s ease;
   }
   .contact-item:hover { transform: translateY(-1px); border-color: var(--teal); }
@@ -77,17 +94,20 @@
     font-size: 16px;
   }
   .contact-item strong { display: block; font-size: 13px; }
-  .contact-item span { display: block; color: var(--muted); font-size: 11.5px; margin-top: 2px; }
+  .contact-item span span { display: block; color: var(--muted); font-size: 11.5px; margin-top: 2px; }
 
-  footer.site-footer { border-top: 1px solid var(--line); padding: 28px 0 40px; margin-top: 20px; }
-  .foot-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; color: var(--muted); font-size: 11.5px; }
-  .foot-row a { color: var(--muted); text-decoration: none; font-weight: 600; }
-  .foot-row a:hover { color: var(--teal); }
+  footer.site-footer { padding: 34px 0 44px; }
+  .foot-row {
+    display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+    color: rgba(255,255,255,.9); font-size: 11.5px; text-shadow: 0 1px 8px rgba(11,42,36,.4);
+  }
+  .foot-row a { color: #fff; text-decoration: none; font-weight: 600; }
 
   @media (max-width: 640px) {
     .hero h1 { font-size: 27px; }
     .contact-grid { grid-template-columns: 1fr; }
-    .founder-card { flex-direction: column; }
+    .founder { flex-direction: column; }
+    .glass { padding: 20px; }
   }
 </style>
 </head>
@@ -107,31 +127,48 @@
 
     <section class="hero">
       <p class="eyebrow">À propos</p>
-      <h1>Une caisse pensée pour les commerçants, construite par quelqu'un qui les comprend.</h1>
-      <p class="lead">SamaCaisse est né d'un constat simple : la plupart des petits commerces au Sénégal gèrent encore leurs ventes, leur stock et leur caisse sur papier ou de tête. L'objectif de cette plateforme est de rendre cette gestion aussi simple qu'un paiement mobile money.</p>
+      <h1>La caisse de votre boutique, enfin claire, enfin simple.</h1>
+      <p class="lead">SamaCaisse remplace le cahier, les messages WhatsApp éparpillés et les calculs de tête par un seul outil : votre boutique entière, dans votre téléphone.</p>
     </section>
 
-    <section class="block">
-      <h2>Le projet</h2>
-      <p>SamaCaisse permet à un commerçant de suivre ses ventes, ouvrir et fermer sa caisse, gérer son stock, enregistrer ses dépenses et donner un accès limité à son personnel — le tout depuis un téléphone, sans matériel spécifique ni formation longue.</p>
-      <p>Chaque personne qui s'inscrit devient propriétaire de son propre espace, avec ses données isolées de celles des autres commerces. La plateforme grandit avec l'activité : un seul point de vente au départ, autant que nécessaire ensuite.</p>
-    </section>
+    <div class="glass">
+      <h2>Le problème que vivent les commerçants</h2>
+      <p>Dans la plupart des boutiques, tout se gère à la main : les ventes notées dans un cahier quand on y pense, les dépenses confiées à la mémoire, le stock estimé « à l'œil », les comptes faits de tête le soir. Les messages WhatsApp avec les fournisseurs et les clients s'empilent et on ne retrouve plus rien. Une erreur de calcul, un oubli, et c'est la caisse qui ne tombe plus juste — sans jamais savoir où l'argent est parti.</p>
+      <p>Cette façon de travailler a fait son temps. Le monde a dépassé l'étape du papier et du bricolage : aujourd'hui, même le plus petit commerce mérite des chiffres fiables, disponibles tout de suite, sans y passer la soirée.</p>
+    </div>
 
-    <section class="block">
+    <div class="glass">
+      <h2>Ce que SamaCaisse change pour vous</h2>
+      <p>Tout ce qui faisait perdre du temps se fait désormais en quelques gestes, sur téléphone comme sur ordinateur : vos données sont synchronisées et vous retrouvez votre boutique partout, à tout moment. Fini les cahiers perdus et les totaux approximatifs — chaque franc est enregistré, chaque mouvement est tracé, et le bilan de la journée apparaît tout seul.</p>
+      <p>Vous pouvez gérer plusieurs boutiques depuis le même espace, donner à chaque vendeur un accès limité à son seul magasin, et garder une vision globale ou détaillée selon ce dont vous avez besoin.</p>
+    </div>
+
+    <div class="glass">
+      <h2>Visite guidée de la plateforme</h2>
+      <p><strong>Ventes.</strong> Enregistrez une vente en renseignant simplement le montant, ou choisissez le produit dans votre catalogue pour que le prix et le stock se mettent à jour tout seuls. Liquide ou mobile money, avec la quantité.</p>
+      <p><strong>Caisses.</strong> Ouvrez la caisse le matin avec le fond de départ, fermez-la le soir avec le montant compté : SamaCaisse calcule ce qui devrait s'y trouver et vous montre l'écart. L'historique des caisses est conservé sans limite.</p>
+      <p><strong>Dépenses.</strong> Chaque sortie d'argent — transport, électricité, réassort — est saisie aussitôt avec son motif, pour un bénéfice réel et pas deviné.</p>
+      <p><strong>Produits et stock.</strong> Votre catalogue avec catégories et prix, commun à vos boutiques ou propre à chacune, avec des alertes quand le stock baisse et la mise à jour automatique à chaque vente.</p>
+      <p><strong>Personnel.</strong> Chaque vendeur se connecte avec son numéro et un code à 4 chiffres, ne voit que son magasin et ses propres ventes. Vous pouvez modifier ses infos ou couper son accès à tout moment.</p>
+      <p><strong>Rapports.</strong> Ventes, dépenses et bénéfice jour par jour, par produit et par vendeur, avec exports en CSV et impression PDF pour vos archives.</p>
+    </div>
+
+    <div class="glass">
+      <h2>Le but du projet</h2>
+      <p>Donner à chaque commerçant, même sans comptable et sans formation, une vision claire et honnête de son activité : savoir chaque soir ce qui a été gagné, ce qui a été dépensé et ce qui reste. Un outil simple, en français, pensé pour le téléphone qu'on a déjà en poche.</p>
+    </div>
+
+    <div class="glass">
       <h2>Qui est derrière SamaCaisse</h2>
-      <div class="founder-card">
+      <div class="founder">
         <div class="founder-initials">AN</div>
         <div>
           <strong>Ablaye Ndiaye</strong>
           <span class="role">Étudiant en économie et gestion · créateur de SamaCaisse</span>
-          <p>Ce projet est né de la rencontre entre deux choses : des études en économie et gestion qui donnent une lecture concrète des besoins des commerçants — suivi de trésorerie, marges, stock — et une passion pour la technologie qui pousse à construire des outils plutôt qu'à se contenter de les étudier. SamaCaisse est ce point de rencontre : un produit SaaS pensé à partir de problèmes de gestion réels, pas l'inverse.</p>
+          <p>Ce projet est né de la rencontre entre deux choses : des études en économie et gestion qui donnent une lecture concrète des besoins des commerçants — suivi de trésorerie, marges, stock — et une passion pour la technologie qui pousse à construire des outils plutôt qu'à se contenter de les étudier. SamaCaisse est ce point de rencontre : un produit pensé à partir de problèmes de gestion réels, pas l'inverse.</p>
         </div>
       </div>
-    </section>
-
-    <section class="block">
-      <h2>Une question, une suggestion ?</h2>
-      <p>N'hésitez pas à écrire directement — chaque retour sert à améliorer la plateforme.</p>
+      <p style="margin-top:14px">Une question, une suggestion ? Écrivez directement — chaque retour sert à améliorer la plateforme.</p>
       <div class="contact-grid">
         <a class="contact-item" href="mailto:ablaye.ndiaye.etude@gmail.com?subject=SamaCaisse%20-%20Contact">
           <span class="contact-icon">✉</span>
@@ -142,14 +179,14 @@
           <span><strong>Téléphone</strong><span>+221 76 216 79 59</span></span>
         </a>
       </div>
-    </section>
+    </div>
 
   </div>
 
   <footer class="site-footer">
     <div class="container foot-row">
       <span>© 2026 SamaCaisse. Tous droits réservés.</span>
-      <span><a href="/">Accueil</a> · <a href="/app">Espace propriétaire</a> · <a href="mailto:ablaye.ndiaye.etude@gmail.com">Contact</a></span>
+      <span><a href="/">Accueil</a> · <a href="/app">Espace</a> · <a href="/rgpd.html">Confidentialité</a> · <a href="/cgu.html">CGU</a></span>
     </div>
   </footer>
 
