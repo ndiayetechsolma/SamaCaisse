@@ -55,7 +55,9 @@
     return { response, payload };
   };
 
-  const storeName = magasinId => state.magasins.find(magasin => magasin.id === magasinId)?.nom || 'Toutes les boutiques';
+  const t = (key, fallback) => window.SamaCaisseI18n ? window.SamaCaisseI18n.t(key) : fallback;
+
+  const storeName = magasinId => state.magasins.find(magasin => magasin.id === magasinId)?.nom || t('store_all', 'Toutes les boutiques');
   const scopeMatches = item => state.store === 'all' || item.magasin_id === state.store || (item.magasin_id === null && state.store === 'all');
   const filtered = (items) => items.filter(scopeMatches);
   const periodRange = () => {
@@ -97,7 +99,7 @@
     maybeStartTour();
   }
 
-  const pageTitle = () => ({ dashboard: 'Tableau de bord', sales: 'Ventes', cash: 'Caisses', expenses: 'Dépenses', products: 'Produits', team: 'Personnel', reports: 'Rapports' }[state.currentView] || 'Tableau de bord');
+  const pageTitle = () => ({ dashboard: t('nav_dashboard', 'Tableau de bord'), sales: t('nav_sales', 'Ventes'), cash: t('nav_cash', 'Caisses'), expenses: t('nav_expenses', 'Dépenses'), products: t('nav_products', 'Produits'), team: t('nav_team', 'Personnel'), reports: t('nav_reports', 'Rapports') }[state.currentView] || t('nav_dashboard', 'Tableau de bord'));
 
   function buildTrendSvg(sales) {
     const days = [];
@@ -149,11 +151,11 @@
     link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 500);
   }
-  const scopeLabel = () => (state.store === 'all' ? 'Toutes les boutiques' : storeName(state.store));
+  const scopeLabel = () => (state.store === 'all' ? t('store_all', 'Toutes les boutiques') : storeName(state.store));
   function syncProfileUi() {
     const profile = window.solmaCompteSession?.compte || window.solmaPersonnelSession?.personnel;
     if (!profile) return;
-    const name = profile.nom || profile.email || 'Compte propriétaire';
+    const name = profile.nom || profile.email || t('app_profile_owner', 'Compte propriétaire');
     document.getElementById('profile-name').textContent = name;
     const avatar = document.getElementById('profile-avatar');
     if (avatar) avatar.textContent = String(name).split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase();
@@ -199,10 +201,10 @@
     };
   }
   function exportSalesCsv() {
-    downloadCsv('ventes.csv', ['Produit', 'Vendeur', 'Boutique', 'Paiement', 'Quantité', 'Montant', 'Date', 'Statut'], personnelOwnSales(filtered(state.ventes)).filter(sale => matchesSearch(sale.nom_produit, 'ventes')).map(v => [v.nom_produit, v.personnel?.nom || v.admin_nom || 'Propriétaire', v.magasins?.nom || '', v.mode_paiement === 'liquide' ? 'Liquide' : 'Mobile money', v.quantite, v.montant, toTime(v.date_heure), v.annulee ? 'Annulée' : 'Valide']));
+    downloadCsv('ventes.csv', ['Produit', 'Vendeur', 'Boutique', 'Paiement', 'Quantité', 'Montant', 'Date', 'Statut'], personnelOwnSales(filtered(state.ventes)).filter(sale => matchesSearch(sale.nom_produit, 'ventes')).map(v => [v.nom_produit, v.personnel?.nom || v.admin_nom || t('app_owner', 'Propriétaire'), v.magasins?.nom || '', v.mode_paiement === 'liquide' ? t('app_pay_cash', 'Liquide') : t('app_pay_mobile', 'Mobile money'), v.quantite, v.montant, toTime(v.date_heure), v.annulee ? t('app_cancelled', 'Annulée') : 'Valide']));
   }
   function exportExpensesCsv() {
-    downloadCsv('depenses.csv', ['Motif', 'Ajoutée par', 'Boutique', 'Montant', 'Date', 'Statut'], filtered(state.depenses).filter(d => matchesSearch(d.motif, 'depenses')).map(d => [d.motif, d.personnel?.nom || d.admin_nom || 'Propriétaire', d.magasins?.nom || '', d.montant, toTime(d.date_heure), d.annulee ? 'Annulée' : 'Valide']));
+    downloadCsv('depenses.csv', ['Motif', 'Ajoutée par', 'Boutique', 'Montant', 'Date', 'Statut'], filtered(state.depenses).filter(d => matchesSearch(d.motif, 'depenses')).map(d => [d.motif, d.personnel?.nom || d.admin_nom || t('app_owner', 'Propriétaire'), d.magasins?.nom || '', d.montant, toTime(d.date_heure), d.annulee ? t('app_cancelled', 'Annulée') : 'Valide']));
   }
   function exportDailyCsv() {
     const { daily } = reportSnapshot();
@@ -217,26 +219,26 @@
     const devise = state.entreprise.devise || 'FCFA';
     const moneyRaw = value => new Intl.NumberFormat('fr-FR').format(Math.round(Number(value) || 0)) + ' ' + devise;
     const today = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-    const dailyRows = daily.length ? daily.map(d => `<tr><td>${d.date}</td><td>${moneyRaw(d.sales)}</td><td>− ${moneyRaw(d.expenses)}</td><td>${moneyRaw(d.sales - d.expenses)}</td></tr>`).join('') : '<tr><td colspan="4">Aucune vente ou dépense enregistrée.</td></tr>';
-    const cashRows = cashClosed.length ? cashClosed.slice(0, 60).map(c => `<tr><td>${c.date}</td><td>${escapeHtml(c.store)}</td><td>${moneyRaw(c.opening)}</td><td>${moneyRaw(c.theorique)}</td><td>${moneyRaw(c.closings)}</td><td>${moneyRaw(c.difference)}</td></tr>`).join('') : '<tr><td colspan="6">Aucune caisse clôturée.</td></tr>';
+    const dailyRows = daily.length ? daily.map(d => `<tr><td>${d.date}</td><td>${moneyRaw(d.sales)}</td><td>− ${moneyRaw(d.expenses)}</td><td>${moneyRaw(d.sales - d.expenses)}</td></tr>`).join('') : '<tr><td colspan="4">' + t('app_print_none', 'Aucune vente ou dépense enregistrée.') + '</td></tr>';
+    const cashRows = cashClosed.length ? cashClosed.slice(0, 60).map(c => `<tr><td>${c.date}</td><td>${escapeHtml(c.store)}</td><td>${moneyRaw(c.opening)}</td><td>${moneyRaw(c.theorique)}</td><td>${moneyRaw(c.closings)}</td><td>${moneyRaw(c.difference)}</td></tr>`).join('') : '<tr><td colspan="6">' + t('app_print_no_cash', 'Aucune caisse clôturée.') + '</td></tr>';
     const topRows = topProducts.length ? topProducts.map(([name, value]) => `<tr><td>${escapeHtml(name)}</td><td>${moneyRaw(value)}</td></tr>`).join('') : '';
     const container = document.querySelector('#print-report');
     container.innerHTML = `
-      <h1>${escapeHtml(state.entreprise.nom || 'SamaCaisse')} — Rapport de gestion</h1>
-      <p class="print-muted">${escapeHtml(scopeLabel())} · Généré le ${today}</p>
-      <h2>Total de la période</h2>
-      <table><tr><th>Ventes</th><th>Dépenses</th><th>Résultat net</th></tr><tr><td>${moneyRaw(totals.sales)}</td><td>− ${moneyRaw(totals.expenses)}</td><td>${moneyRaw(totals.net)}</td></tr></table>
-      ${topRows ? `<h2>Meilleurs produits</h2><table><tr><th>Produit</th><th>Montant vendu</th></tr>${topRows}</table>` : ''}
-      <h2>Jour par jour</h2>
-      <table><tr><th>Jour</th><th>Ventes</th><th>Dépenses</th><th>Résultat</th></tr>${dailyRows}</table>
-      <h2>Historique des caisses</h2>
-      <table><tr><th>Clôturée le</th><th>Boutique</th><th>Ouverture</th><th>Solde théorique</th><th>Solde réel</th><th>Écart</th></tr>${cashRows}</table>`;
+      <h1>${escapeHtml(state.entreprise.nom || 'SamaCaisse')} — ${t('app_print_title', 'Rapport de gestion')}</h1>
+      <p class="print-muted">${escapeHtml(scopeLabel())} · ${t('app_print_gen', 'Généré le')} ${today}</p>
+      <h2>${t('app_print_total', 'Total de la période')}</h2>
+      <table><tr><th>${t('app_th_sales', 'Ventes')}</th><th>${t('app_th_expenses', 'Dépenses')}</th><th>${t('app_print_net', 'Résultat net')}</th></tr><tr><td>${moneyRaw(totals.sales)}</td><td>− ${moneyRaw(totals.expenses)}</td><td>${moneyRaw(totals.net)}</td></tr></table>
+      ${topRows ? `<h2>${t('app_print_best', 'Meilleurs produits')}</h2><table><tr><th>${t('app_th_product', 'Produit')}</th><th>${t('app_print_best_amount', 'Montant vendu')}</th></tr>${topRows}</table>` : ''}
+      <h2>${t('app_print_daily', 'Jour par jour')}</h2>
+      <table><tr><th>${t('app_th_day', 'Jour')}</th><th>${t('app_th_sales', 'Ventes')}</th><th>${t('app_th_expenses', 'Dépenses')}</th><th>${t('app_th_result', 'Résultat')}</th></tr>${dailyRows}</table>
+      <h2>${t('app_print_cash', 'Historique des caisses')}</h2>
+      <table><tr><th>${t('app_th_closed_at', 'Clôturée le')}</th><th>${t('app_th_store', 'Boutique')}</th><th>${t('app_th_opening', 'Ouverture')}</th><th>${t('app_th_theoretical', 'Solde théorique')}</th><th>${t('app_th_real', 'Solde réel')}</th><th>${t('app_th_gap', 'Écart')}</th></tr>${cashRows}</table>`;
     window.print();
   }
 
   function dashboardView() {
-    if (state.loading) return '<div class="loading-state glass-card"><strong>Chargement des données…</strong><span>Connexion en cours.</span></div>';
-    if (state.error) return `<div class="empty-state glass-card"><strong>Impossible de charger vos données.</strong><span>${escapeHtml(state.error)}</span><button class="btn btn-primary" data-action="retry">Réessayer</button></div>`;
+    if (state.loading) return `<div class="loading-state glass-card"><strong>${t('app_dash_loading', 'Chargement des données…')}</strong><span>${t('app_dash_loading_sub', 'Connexion en cours.')}</span></div>`;
+    if (state.error) return `<div class="empty-state glass-card"><strong>${t('app_dash_error', 'Impossible de charger vos données.')}</strong><span>${escapeHtml(state.error)}</span><button class="btn btn-primary" data-action="retry">${t('app_retry', 'Réessayer')}</button></div>`;
     const range = periodRange();
     const sales = filtered(state.ventes).filter(sale => !sale.annulee && inPeriod(sale.date_heure));
     const todaySales = sales.filter(sale => isToday(sale.date_heure));
@@ -249,39 +251,39 @@
     const yesterdayTotal = filtered(state.ventes).filter(sale => !sale.annulee && isSameDay(new Date(sale.date_heure), yesterday)).reduce((sum, sale) => sum + sale.montant, 0);
     let trend;
     if (yesterdayTotal > 0) trend = `${((totalSales - yesterdayTotal) / yesterdayTotal * 100).toFixed(1).replace('.', ',') >= 0 ? '+' : ''}${((totalSales - yesterdayTotal) / yesterdayTotal * 100).toFixed(1).replace('.', ',')}%`;
-    else if (totalSales > 0) trend = 'Nouveau';
+    else if (totalSales > 0) trend = t('app_dash_new', 'Nouveau');
     else trend = '—';
     const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-    const sellerName = window.solmaPersonnelSession?.personnel?.nom || (state.entreprise.nom || 'Votre boutique');
-    const periodLabel = state.period === 'all' ? '' : `<span class="period-label"> · ${({ today: 'Aujourd’hui', '7d': '7 derniers jours', '30d': '30 derniers jours' })[state.period]}</span>`;
+    const sellerName = window.solmaPersonnelSession?.personnel?.nom || (state.entreprise.nom || t('app_your_store', 'Votre boutique'));
+    const periodLabel = state.period === 'all' ? '' : `<span class="period-label"> · ${({ today: t('app_dash_today_full', 'Aujourd’hui'), '7d': t('app_period_map_7d', '7 derniers jours'), '30d': t('app_period_map_30d', '30 derniers jours') })[state.period]}</span>`;
     const cashCards = filtered(state.caisses).reduce((items, item) => {
       const key = item.magasin_id;
       if (items.some(entry => entry.magasin_id === key)) return items;
       const open = !item.date_fermeture;
-      items.push({ key, name: storeName(item.magasin_id) || 'Toutes les boutiques', magasin_id: item.magasin_id, open, opening: item.montant_ouverture, expected: cashExpectation(item), openedAt: toTime(item.date_ouverture) });
+      items.push({ key, name: storeName(item.magasin_id) || t('store_all', 'Toutes les boutiques'), magasin_id: item.magasin_id, open, opening: item.montant_ouverture, expected: cashExpectation(item), openedAt: toTime(item.date_ouverture) });
       return items;
     }, []);
     const latestSales = personnelOwnSales(filtered(state.ventes)).slice(0, 5);
-    return `<div class="page-heading"><div><p class="eyebrow">${todayLabel.charAt(0).toUpperCase() + todayLabel.slice(1)}</p><h1>Bonjour ${escapeHtml(sellerName)}</h1><p class="subtle">Voici ce qui se passe aujourd’hui${periodLabel}.</p></div>${state.isPersonnel ? '' : `<div class="page-heading-actions">${periodSelector()}<button class="btn btn-primary" data-action="new-sale">${icon('plus', 14)} Nouvelle vente</button></div>`}</div>
+    return `<div class="page-heading"><div><p class="eyebrow">${todayLabel.charAt(0).toUpperCase() + todayLabel.slice(1)}</p><h1>${t('app_hello', 'Bonjour')} ${escapeHtml(sellerName)}</h1><p class="subtle">${t('app_dash_happening', 'Voici ce qui se passe aujourd’hui')}${periodLabel}.</p></div>${state.isPersonnel ? '' : `<div class="page-heading-actions">${periodSelector()}<button class="btn btn-primary" data-action="new-sale">${icon('plus', 14)} ${t('common_new_sale', 'Nouvelle vente')}</button></div>`}</div>
     <section class="stats-grid">
-      <article class="glass-card stat-card"><div class="stat-top"><span>${state.period === 'today' ? 'Ventes du jour' : 'Ventes de la période'}</span><span class="stat-symbol">${icon('trendingUp')}</span></div><h2>${money(totalSales)}</h2><div class="stat-foot ${yesterdayTotal > 0 ? '' : 'neutral'}"><b>${trend}</b> vs. hier</div></article>
-      <article class="glass-card stat-card"><div class="stat-top"><span>Transactions</span><span class="stat-symbol">${icon('activity')}</span></div><h2>${todaySales.length}</h2><div class="stat-foot neutral">Ventes enregistrées aujourd’hui</div></article>
-      <article class="glass-card stat-card"><div class="stat-top"><span>Dépenses du jour</span><span class="stat-symbol">${icon('trendingDown')}</span></div><h2>${money(totalExpenses)}</h2><div class="stat-foot neutral">${todayExpenses.length} dépense${todayExpenses.length > 1 ? 's' : ''} aujourd’hui</div></article>
-      <article class="glass-card stat-card"><div class="stat-top"><span>Caisse attendue</span><span class="stat-symbol">${icon('wallet')}</span></div><h2>${money(cashTotal)}</h2><div class="stat-foot ${openCash.length ? '' : 'neutral'}">${openCash.length ? 'Caisse ouverte' : 'Caisse non ouverte'}</div></article>
+      <article class="glass-card stat-card"><div class="stat-top"><span>${state.period === 'today' ? t('app_dash_sales_day', 'Ventes du jour') : t('app_dash_sales_period', 'Ventes de la période')}</span><span class="stat-symbol">${icon('trendingUp')}</span></div><h2>${money(totalSales)}</h2><div class="stat-foot ${yesterdayTotal > 0 ? '' : 'neutral'}"><b>${trend}</b> ${t('app_dash_vs_yesterday', 'vs. hier')}</div></article>
+      <article class="glass-card stat-card"><div class="stat-top"><span>${t('app_dash_transactions', 'Transactions')}</span><span class="stat-symbol">${icon('activity')}</span></div><h2>${todaySales.length}</h2><div class="stat-foot neutral">${t('app_dash_trans_today', 'Ventes enregistrées aujourd’hui')}</div></article>
+      <article class="glass-card stat-card"><div class="stat-top"><span>${t('app_dash_expenses', 'Dépenses du jour')}</span><span class="stat-symbol">${icon('trendingDown')}</span></div><h2>${money(totalExpenses)}</h2><div class="stat-foot neutral">${todayExpenses.length} ${t('app_dash_expense_unit', 'dépense')}${todayExpenses.length > 1 ? 's' : ''} ${t('app_dash_today_word', 'aujourd’hui')}</div></article>
+      <article class="glass-card stat-card"><div class="stat-top"><span>${t('app_dash_cash', 'Caisse attendue')}</span><span class="stat-symbol">${icon('wallet')}</span></div><h2>${money(cashTotal)}</h2><div class="stat-foot ${openCash.length ? '' : 'neutral'}">${openCash.length ? t('app_dash_cash_open', 'Caisse ouverte') : t('app_dash_cash_none', 'Caisse non ouverte')}</div></article>
     </section>
     <section class="content-grid">
-      <article class="glass-card panel"><div class="panel-header"><div><h3>Performance des ventes</h3><p>Chiffre d’affaires des 7 derniers jours</p></div><button class="text-link" data-view-link="reports">Voir le rapport ↗</button></div><div class="chart-wrap">${buildTrendSvg(sales)}</div><div class="legend"><span><i></i> Total des ventes</span></div></article>
-      <article class="glass-card panel"><div class="panel-header"><div><h3>État des caisses</h3><p>Suivi en temps réel</p></div><button class="text-link" data-view-link="cash">Tout voir</button></div><div class="cash-list">${cashCards.length ? cashCards.map(cash => `<div class="cash-item"><div class="store-icon">${icon('store', 18)}</div><div class="cash-info"><strong>${escapeHtml(cash.name)}</strong><span>${cash.open ? (cash.openedAt ? 'Ouverte à ' + cash.openedAt.split(', ')[1] : 'Ouverte') : 'Fermée'}</span></div><div class="cash-amount"><strong>${money(cash.expected)}</strong><span class="${cash.open ? '' : 'closed'}">${cash.open ? 'En cours' : 'Fermée'}</span></div><div class="cash-progress"><i class="${cash.open ? '' : 'closed'}"></i></div></div>`).join('') : '<div class="empty-state"><strong>Aucune caisse</strong><span>Ouvrez une caisse pour commencer le suivi.</span></div>'}</div></article>
+      <article class="glass-card panel"><div class="panel-header"><div><h3>${t('app_dash_perf', 'Performance des ventes')}</h3><p>${t('app_dash_perf_sub', 'Chiffre d’affaires des 7 derniers jours')}</p></div><button class="text-link" data-view-link="reports">${t('app_dash_see_report', 'Voir le rapport ↗')}</button></div><div class="chart-wrap">${buildTrendSvg(sales)}</div><div class="legend"><span><i></i> ${t('app_chart_total', 'Total des ventes')}</span></div></article>
+      <article class="glass-card panel"><div class="panel-header"><div><h3>${t('app_dash_cash_state', 'État des caisses')}</h3><p>${t('app_dash_cash_sub', 'Suivi en temps réel')}</p></div><button class="text-link" data-view-link="cash">${t('app_dash_see_all', 'Tout voir')}</button></div><div class="cash-list">${cashCards.length ? cashCards.map(cash => `<div class="cash-item"><div class="store-icon">${icon('store', 18)}</div><div class="cash-info"><strong>${escapeHtml(cash.name)}</strong><span>${cash.open ? (cash.openedAt ? t('app_dash_opened_at', 'Ouverte à ') + cash.openedAt.split(', ')[1] : t('app_dash_open', 'Ouverte')) : t('app_dash_closed', 'Fermée')}</span></div><div class="cash-amount"><strong>${money(cash.expected)}</strong><span class="${cash.open ? '' : 'closed'}">${cash.open ? t('app_dash_ongoing', 'En cours') : t('app_dash_closed', 'Fermée')}</span></div><div class="cash-progress"><i class="${cash.open ? '' : 'closed'}"></i></div></div>`).join('') : '<div class="empty-state"><strong>' + t('app_dash_no_cash', 'Aucune caisse') + '</strong><span>' + t('app_dash_no_cash_sub', 'Ouvrez une caisse pour commencer le suivi.') + '</span></div>'}</div></article>
     </section>
-    <section class="glass-card panel activity-panel"><div class="panel-header"><div><h3>Dernières transactions</h3><p>Les ventes les plus récentes</p></div><button class="text-link" data-view-link="sales">Voir toutes les ventes ↗</button></div>${salesTable(latestSales)}</section>`;
+    <section class="glass-card panel activity-panel"><div class="panel-header"><div><h3>${t('app_dash_latest', 'Dernières transactions')}</h3><p>${t('app_dash_latest_sub', 'Les ventes les plus récentes')}</p></div><button class="text-link" data-view-link="sales">${t('app_dash_all_sales', 'Voir toutes les ventes ↗')}</button></div>${salesTable(latestSales)}</section>`;
   }
 
   function salesTable(sales) {
-    const rows = sales.length ? sales.map(sale => `<tr class="${sale.annulee ? 'cancelled-row' : ''}"><td><strong>${escapeHtml(sale.nom_produit)}</strong></td><td><div class="person"><span class="person-avatar">${initials(sale.personnel?.nom || sale.admin_nom || 'A')}</span>${escapeHtml(sale.personnel?.nom || sale.admin_nom || 'Propriétaire')}</div></td><td class="muted">${escapeHtml(sale.magasins?.nom || '—')}</td><td><span class="badge ${sale.mode_paiement === 'liquide' ? 'badge-cash' : 'badge-money'}">${sale.mode_paiement === 'liquide' ? 'Liquide' : 'Mobile money'}</span></td><td><strong>${money(sale.montant)}</strong></td><td class="muted">${escapeHtml(toTime(sale.date_heure))}${sale.annulee ? ' · Annulée' : ''}</td>${state.isPersonnel ? '' : `<td>${sale.annulee ? '<span class="muted">Annulée</span>' : `<button class="text-link danger-link" data-cancel-sale="${sale.id}">Annuler</button>`}</td>`}</tr>`).join('') : '<tr><td colspan="7"><div class="empty-state"><strong>Aucune vente</strong><span>Les ventes enregistrées apparaîtront ici.</span></div></td></tr>';
-    return `<div class="table-wrap"><table class="data-table"><thead><tr><th>Produit</th><th>Vendeur</th><th>Boutique</th><th>Paiement</th><th>Montant</th><th>Date et heure</th>${state.isPersonnel ? '' : '<th>Action</th>'}</tr></thead><tbody>${rows}</tbody></table></div>`;
+    const rows = sales.length ? sales.map(sale => `<tr class="${sale.annulee ? 'cancelled-row' : ''}"><td><strong>${escapeHtml(sale.nom_produit)}</strong></td><td><div class="person"><span class="person-avatar">${initials(sale.personnel?.nom || sale.admin_nom || 'A')}</span>${escapeHtml(sale.personnel?.nom || sale.admin_nom || t('app_owner', 'Propriétaire'))}</div></td><td class="muted">${escapeHtml(sale.magasins?.nom || '—')}</td><td><span class="badge ${sale.mode_paiement === 'liquide' ? 'badge-cash' : 'badge-money'}">${sale.mode_paiement === 'liquide' ? t('app_pay_cash', 'Liquide') : t('app_pay_mobile', 'Mobile money')}</span></td><td><strong>${money(sale.montant)}</strong></td><td class="muted">${escapeHtml(toTime(sale.date_heure))}${sale.annulee ? ' · ' + t('app_cancelled', 'Annulée') : ''}</td>${state.isPersonnel ? '' : `<td>${sale.annulee ? '<span class="muted">' + t('app_cancelled', 'Annulée') + '</span>' : `<button class="text-link danger-link" data-cancel-sale="${sale.id}">${t('app_cancel', 'Annuler')}</button>`}</td>`}</tr>`).join('') : '<tr><td colspan="7"><div class="empty-state"><strong>' + t('app_no_sales', 'Aucune vente') + '</strong><span>' + t('app_no_sales_sub', 'Les ventes enregistrées apparaîtront ici.') + '</span></div></td></tr>';
+    return `<div class="table-wrap"><table class="data-table"><thead><tr><th>${t('app_th_product', 'Produit')}</th><th>${t('app_th_seller', 'Vendeur')}</th><th>${t('app_th_store', 'Boutique')}</th><th>${t('app_th_payment', 'Paiement')}</th><th>${t('app_th_amount', 'Montant')}</th><th>${t('app_th_datetime', 'Date et heure')}</th>${state.isPersonnel ? '' : '<th>' + t('app_th_action', 'Action') + '</th>'}</tr></thead><tbody>${rows}</tbody></table></div>`;
   }
 
-  const genericHeader = (title, subtitle, action, actionLabel) => `<div class="page-heading"><div><p class="eyebrow">Gestion opérationnelle</p><h1>${title}</h1><p class="subtle">${subtitle}</p></div>${action ? `<button class="btn btn-primary" data-action="${action}">${icon('plus', 14)} ${actionLabel}</button>` : ''}</div>`;
+  const genericHeader = (title, subtitle, action, actionLabel) => `<div class="page-heading"><div><p class="eyebrow">${t('app_eyebrow_ops', 'Gestion opérationnelle')}</p><h1>${title}</h1><p class="subtle">${subtitle}</p></div>${action ? `<button class="btn btn-primary" data-action="${action}">${icon('plus', 14)} ${actionLabel}</button>` : ''}</div>`;
 
   const searchInput = (key, placeholder) => `<input class="filter-input" data-search="${key}" placeholder="${placeholder}" value="${escapeHtml(state.search[key] || '')}" />`;
   const matchesSearch = (value, key) => {
@@ -291,10 +293,10 @@
   };
   const periodSelector = () => `
     <div class="period-switch" data-period-switch>
-      <button type="button" class="${state.period === 'today' ? 'active' : ''}" data-period="today">Aujourd'hui</button>
-      <button type="button" class="${state.period === '7d' ? 'active' : ''}" data-period="7d">7 jours</button>
-      <button type="button" class="${state.period === '30d' ? 'active' : ''}" data-period="30d">30 jours</button>
-      <button type="button" class="${state.period === 'all' ? 'active' : ''}" data-period="all">Tout</button>
+      <button type="button" class="${state.period === 'today' ? 'active' : ''}" data-period="today">${t('app_period_today', "Aujourd'hui")}</button>
+      <button type="button" class="${state.period === '7d' ? 'active' : ''}" data-period="7d">${t('app_period_7d', '7 jours')}</button>
+      <button type="button" class="${state.period === '30d' ? 'active' : ''}" data-period="30d">${t('app_period_30d', '30 jours')}</button>
+      <button type="button" class="${state.period === 'all' ? 'active' : ''}" data-period="all">${t('app_period_all', 'Tout')}</button>
     </div>`;
 
   const personnelOwnSales = items => {
@@ -306,19 +308,19 @@
 
   function salesTableView() {
     const visible = personnelOwnSales(filtered(state.ventes).filter(sale => matchesSearch(sale.nom_produit, 'ventes')));
-    return `<section class="glass-card view-card"><div class="filters">${searchInput('ventes', 'Rechercher un produit…')}<span class="muted">${visible.length} vente${visible.length > 1 ? 's' : ''}${state.store !== 'all' ? ' · ' + escapeHtml(scopeLabel()) : ''}</span><button class="btn btn-light" data-action="export-csv-sales">Exporter CSV ↗</button></div>${salesTable(visible)}</section>`;
+    return `<section class="glass-card view-card"><div class="filters">${searchInput('ventes', t('app_search_product', 'Rechercher un produit…'))}<span class="muted">${visible.length} ${t('app_unit_sale', 'vente')}${visible.length > 1 ? 's' : ''}${state.store !== 'all' ? ' · ' + escapeHtml(scopeLabel()) : ''}</span><button class="btn btn-light" data-action="export-csv-sales">${t('app_export_csv', 'Exporter CSV ↗')}</button></div>${salesTable(visible)}</section>`;
   }
 
   function salesView() {
-    return genericHeader('Ventes', state.isPersonnel ? 'Les ventes enregistrées dans votre boutique.' : 'Toutes les ventes enregistrées dans vos boutiques.', 'new-sale', 'Nouvelle vente') +
+    return genericHeader(t('app_view_sales_title', 'Ventes'), state.isPersonnel ? t('app_view_sales_sub_staff', 'Les ventes enregistrées dans votre boutique.') : t('app_view_sales_sub_owner', 'Toutes les ventes enregistrées dans vos boutiques.'), 'new-sale', t('common_new_sale', 'Nouvelle vente')) +
       salesTableView();
   }
 
   function expensesView() {
     const visibleExpenses = filtered(state.depenses).filter(depense => matchesSearch(depense.motif, 'depenses'));
-    const rows = visibleExpenses.map(depense => `<tr class="${depense.annulee ? 'cancelled-row' : ''}"><td><strong>${escapeHtml(depense.motif)}</strong></td><td>${escapeHtml(depense.personnel?.nom || depense.admin_nom || 'Propriétaire')}</td><td class="muted">${escapeHtml(depense.magasins?.nom || '—')}</td><td class="negative"><strong>− ${money(depense.montant)}</strong></td><td class="muted">${escapeHtml(toTime(depense.date_heure))}${depense.annulee ? ' · Annulée' : ''}</td>${state.isPersonnel ? '' : `<td>${depense.annulee ? '<span class="muted">Annulée</span>' : `<button class="text-link danger-link" data-cancel-expense="${depense.id}">Annuler</button>`}</td>`}</tr>`).join('');
-    return genericHeader('Dépenses', 'Gardez une trace claire des sorties.', 'new-expense', 'Ajouter une dépense') +
-      `<section class="glass-card view-card"><div class="filters">${searchInput('depenses', 'Rechercher un motif…')}<span class="muted">${visibleExpenses.length} dépense${visibleExpenses.length > 1 ? 's' : ''}${state.store !== 'all' ? ' · ' + escapeHtml(scopeLabel()) : ''}</span><button class="btn btn-light" data-action="export-csv-expenses">Exporter CSV ↗</button></div>${visibleExpenses.length ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>Motif</th><th>Ajoutée par</th><th>Boutique</th><th>Montant</th><th>Date</th>${state.isPersonnel ? '' : '<th>Action</th>'}</tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty-state"><strong>Aucune dépense</strong><span>Les dépenses ajoutées apparaîtront ici.</span></div>'}</section>`;
+    const rows = visibleExpenses.map(depense => `<tr class="${depense.annulee ? 'cancelled-row' : ''}"><td><strong>${escapeHtml(depense.motif)}</strong></td><td>${escapeHtml(depense.personnel?.nom || depense.admin_nom || t('app_owner', 'Propriétaire'))}</td><td class="muted">${escapeHtml(depense.magasins?.nom || '—')}</td><td class="negative"><strong>− ${money(depense.montant)}</strong></td><td class="muted">${escapeHtml(toTime(depense.date_heure))}${depense.annulee ? ' · ' + t('app_cancelled', 'Annulée') : ''}</td>${state.isPersonnel ? '' : `<td>${depense.annulee ? '<span class="muted">' + t('app_cancelled', 'Annulée') + '</span>' : `<button class="text-link danger-link" data-cancel-expense="${depense.id}">${t('app_cancel', 'Annuler')}</button>`}</td>`}</tr>`).join('');
+    return genericHeader(t('app_view_exp_title', 'Dépenses'), t('app_view_exp_sub', 'Gardez une trace claire des sorties.'), 'new-expense', t('app_add_expense', 'Ajouter une dépense')) +
+      `<section class="glass-card view-card"><div class="filters">${searchInput('depenses', t('app_search_reason', 'Rechercher un motif…'))}<span class="muted">${visibleExpenses.length} ${t('app_unit_expense', 'dépense')}${visibleExpenses.length > 1 ? 's' : ''}${state.store !== 'all' ? ' · ' + escapeHtml(scopeLabel()) : ''}</span><button class="btn btn-light" data-action="export-csv-expenses">${t('app_export_csv', 'Exporter CSV ↗')}</button></div>${visibleExpenses.length ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>${t('app_th_reason', 'Motif')}</th><th>${t('app_th_added_by', 'Ajoutée par')}</th><th>${t('app_th_store', 'Boutique')}</th><th>${t('app_th_amount', 'Montant')}</th><th>${t('app_th_date', 'Date')}</th>${state.isPersonnel ? '' : '<th>' + t('app_th_action', 'Action') + '</th>'}</tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty-state"><strong>' + t('app_no_expense', 'Aucune dépense') + '</strong><span>' + t('app_no_expense_sub', 'Les dépenses ajoutées apparaîtront ici.') + '</span></div>'}</section>`;
   }
 
   function cashView() {
@@ -326,31 +328,31 @@
     const cards = magasins.map(magasin => {
       const caisse = filtered(state.caisses).find(item => item.magasin_id === magasin.id);
       const open = Boolean(caisse && !caisse.date_fermeture);
-      return `<article class="glass-card view-card"><div class="panel-header"><div><h3>Caisse ${escapeHtml(magasin.nom)}</h3><p>${open ? 'Ouverte' : 'Fermée'}${caisse ? ' · ' + escapeHtml(toTime(caisse.date_ouverture)) : ''}</p></div><span class="badge ${open ? 'badge-money' : 'badge-cash'}">${open ? 'En cours' : 'Fermée'}</span></div><div class="form-grid"><div><span class="muted">Montant d’ouverture</span><h3>${money(caisse?.montant_ouverture || 0)}</h3></div><div><span class="muted">Montant attendu</span><h3>${money(caisse && !caisse.date_fermeture ? cashExpectation(caisse) : (caisse?.montant_fermeture || 0))}</h3></div></div><div class="form-actions"><button class="btn ${open ? 'btn-danger' : 'btn-primary'}" data-action="${open ? 'close-cash' : 'open-cash'}" data-store="${magasin.id}">${open ? 'Fermer la caisse' : 'Ouvrir la caisse'}</button></div></article>`;
+      return `<article class="glass-card view-card"><div class="panel-header"><div><h3>${t('app_cash_card', 'Caisse')} ${escapeHtml(magasin.nom)}</h3><p>${open ? t('app_dash_open', 'Ouverte') : t('app_dash_closed', 'Fermée')}${caisse ? ' · ' + escapeHtml(toTime(caisse.date_ouverture)) : ''}</p></div><span class="badge ${open ? 'badge-money' : 'badge-cash'}">${open ? t('app_dash_ongoing', 'En cours') : t('app_dash_closed', 'Fermée')}</span></div><div class="form-grid"><div><span class="muted">${t('app_cash_opening', 'Montant d’ouverture')}</span><h3>${money(caisse?.montant_ouverture || 0)}</h3></div><div><span class="muted">${t('app_cash_expected', 'Montant attendu')}</span><h3>${money(caisse && !caisse.date_fermeture ? cashExpectation(caisse) : (caisse?.montant_fermeture || 0))}</h3></div></div><div class="form-actions"><button class="btn ${open ? 'btn-danger' : 'btn-primary'}" data-action="${open ? 'close-cash' : 'open-cash'}" data-store="${magasin.id}">${open ? t('app_cash_close_btn', 'Fermer la caisse') : t('app_cash_open_btn', 'Ouvrir la caisse')}</button></div></article>`;
     }).join('');
     const history = filtered(state.caisses).filter(item => item.date_fermeture).map(item => {
       const ecart = item.ecart || 0;
       return `<tr><td><strong>${escapeHtml(toTime(item.date_fermeture))}</strong></td><td class="muted">${escapeHtml(storeName(item.magasin_id))}</td><td>${money(item.montant_ouverture)}</td><td>${money(item.montant_fermeture)}</td><td class="${ecart >= 0 ? 'positive' : 'negative'}">${ecart >= 0 ? '+ ' : '− '}${money(Math.abs(ecart))}</td></tr>`;
     }).join('');
-    return genericHeader('Caisses', 'Ouvertures, fermetures et écarts de caisse.', null, '') +
+    return genericHeader(t('app_view_cash_title', 'Caisses'), t('app_view_cash_sub', 'Ouvertures, fermetures et écarts de caisse.'), null, '') +
       `<section class="cash-list">${cards}</section>` +
-      `<section class="glass-card panel" style="margin-top:14px"><div class="panel-header"><div><h3>Historique des jours passés</h3><p>Les caisses clôturées sont conservées</p></div></div>${history ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>Clôturée le</th><th>Boutique</th><th>Ouverture</th><th>Fermeture</th><th>Écart</th></tr></thead><tbody>${history}</tbody></table></div>` : '<div class="empty-state"><strong>Pas encore d’historique</strong><span>Il apparaîtra ici après la première fermeture de caisse.</span></div>'}</section>`;
+      `<section class="glass-card panel" style="margin-top:14px"><div class="panel-header"><div><h3>${t('app_cash_history', 'Historique des jours passés')}</h3><p>${t('app_cash_history_sub', 'Les caisses clôturées sont conservées')}</p></div></div>${history ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>${t('app_th_closed_at', 'Clôturée le')}</th><th>${t('app_th_store', 'Boutique')}</th><th>${t('app_th_opening', 'Ouverture')}</th><th>${t('app_th_closing', 'Fermeture')}</th><th>${t('app_th_gap', 'Écart')}</th></tr></thead><tbody>${history}</tbody></table></div>` : '<div class="empty-state"><strong>' + t('app_cash_no_history', 'Pas encore d’historique') + '</strong><span>' + t('app_cash_no_history_sub', 'Il apparaîtra ici après la première fermeture de caisse.') + '</span></div>'}</section>`;
   }
 
   function productsView() {
     const visibleProducts = filtered(state.produits).filter(product => matchesSearch(product.nom, 'produits') || matchesSearch(product.categorie, 'produits'));
     const rows = visibleProducts.map(product => {
-      const stockLabel = product.stock <= 0 ? '<span class="badge badge-cash">Épuisé</span>' : product.stock < 10 ? `<span class="badge badge-money">Stock faible</span>` : '<span class="badge badge-money">Disponible</span>';
-      return `<tr><td><strong>${escapeHtml(product.nom)}</strong></td><td class="muted">${escapeHtml(product.categorie || '—')}</td><td>${escapeHtml(storeName(product.magasin_id))}</td><td><strong>${money(product.prix)}</strong></td><td><strong>${product.stock}</strong> ${stockLabel}</td><td><button class="text-link" data-edit-product="${product.id}">Modifier</button> · <button class="text-link ${product.actif ? 'danger-link' : ''}" data-toggle-product="${product.id}" data-active="${product.actif ? '1' : '0'}">${product.actif ? 'Désactiver' : 'Réactiver'}</button></td></tr>`;
+      const stockLabel = product.stock <= 0 ? '<span class="badge badge-cash">' + t('app_stock_empty', 'Épuisé') + '</span>' : product.stock < 10 ? `<span class="badge badge-money">${t('app_stock_low', 'Stock faible')}</span>` : '<span class="badge badge-money">' + t('app_stock_ok', 'Disponible') + '</span>';
+      return `<tr><td><strong>${escapeHtml(product.nom)}</strong></td><td class="muted">${escapeHtml(product.categorie || '—')}</td><td>${escapeHtml(storeName(product.magasin_id))}</td><td><strong>${money(product.prix)}</strong></td><td><strong>${product.stock}</strong> ${stockLabel}</td><td><button class="text-link" data-edit-product="${product.id}">${t('app_prod_edit', 'Modifier')}</button> · <button class="text-link ${product.actif ? 'danger-link' : ''}" data-toggle-product="${product.id}" data-active="${product.actif ? '1' : '0'}">${product.actif ? t('app_prod_deactivate', 'Désactiver') : t('app_prod_reactivate', 'Réactiver')}</button></td></tr>`;
     }).join('');
-    return genericHeader('Produits', 'Votre catalogue : prix, catégories et stock par boutique.', 'new-product', 'Nouveau produit') +
-      `<section class="glass-card view-card"><div class="filters">${searchInput('produits', 'Rechercher un produit…')}<span class="muted">${visibleProducts.length} produit${visibleProducts.length > 1 ? 's' : ''}</span></div>${visibleProducts.length ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>Produit</th><th>Catégorie</th><th>Boutique</th><th>Prix de vente</th><th>Stock</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty-state"><strong>Aucun produit</strong><span>Ajoutez des produits pour les vendre et suivre le stock.</span></div>'}</section>`;
+    return genericHeader(t('app_view_prod_title', 'Produits'), t('app_view_prod_sub', 'Votre catalogue : prix, catégories et stock par boutique.'), 'new-product', t('app_new_product', 'Nouveau produit')) +
+      `<section class="glass-card view-card"><div class="filters">${searchInput('produits', t('app_search_product', 'Rechercher un produit…'))}<span class="muted">${visibleProducts.length} ${t('app_unit_product', 'produit')}${visibleProducts.length > 1 ? 's' : ''}</span></div>${visibleProducts.length ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>${t('app_th_product', 'Produit')}</th><th>${t('app_th_category', 'Catégorie')}</th><th>${t('app_th_store', 'Boutique')}</th><th>${t('app_th_price', 'Prix de vente')}</th><th>${t('app_th_stock', 'Stock')}</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty-state"><strong>' + t('app_no_product', 'Aucun produit') + '</strong><span>' + t('app_no_product_sub', 'Ajoutez des produits pour les vendre et suivre le stock.') + '</span></div>'}</section>`;
   }
 
   function teamView() {
-    const rows = state.personnel.map(member => `<tr><td><div class="person"><span class="person-avatar">${initials(member.nom)}</span><strong>${escapeHtml(member.nom)}</strong></div></td><td class="muted">${member.role === 'admin' ? 'Administrateur' : 'Vendeur'}</td><td>${escapeHtml(member.telephone)}</td><td class="muted">${escapeHtml(storeName(member.magasin_id))}</td><td><span class="badge ${member.actif ? 'badge-money' : 'badge-cash'}">${member.actif ? 'Actif' : 'Inactif'}</span></td><td><button class="text-link" data-edit-personnel="${member.id}">Modifier</button> · <button class="text-link danger-link" data-deactivate-personnel="${member.id}" data-active="${member.actif ? '1' : '0'}">${member.actif ? 'Désactiver' : 'Réactiver'}</button></td></tr>`).join('');
-    return genericHeader('Personnel', 'Les personnes autorisées à enregistrer des opérations.', 'new-team', 'Ajouter une personne') +
-      `<section class="glass-card view-card">${state.personnel.length ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>Nom</th><th>Rôle</th><th>Téléphone</th><th>Boutique</th><th>Accès</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty-state"><strong>Aucune personne</strong><span>Ajoutez vos premiers vendeurs pour qu’ils enregistrent des opérations.</span></div>'}</section>`;
+    const rows = state.personnel.map(member => `<tr><td><div class="person"><span class="person-avatar">${initials(member.nom)}</span><strong>${escapeHtml(member.nom)}</strong></div></td><td class="muted">${member.role === 'admin' ? t('app_role_admin', 'Administrateur') : t('app_role_seller', 'Vendeur')}</td><td>${escapeHtml(member.telephone)}</td><td class="muted">${escapeHtml(storeName(member.magasin_id))}</td><td><span class="badge ${member.actif ? 'badge-money' : 'badge-cash'}">${member.actif ? t('app_access_on', 'Actif') : t('app_access_off', 'Inactif')}</span></td><td><button class="text-link" data-edit-personnel="${member.id}">${t('app_prod_edit', 'Modifier')}</button> · <button class="text-link danger-link" data-deactivate-personnel="${member.id}" data-active="${member.actif ? '1' : '0'}">${member.actif ? t('app_prod_deactivate', 'Désactiver') : t('app_prod_reactivate', 'Réactiver')}</button></td></tr>`).join('');
+    return genericHeader(t('app_view_team_title', 'Personnel'), t('app_view_team_sub', 'Les personnes autorisées à enregistrer des opérations.'), 'new-team', t('app_add_person', 'Ajouter une personne')) +
+      `<section class="glass-card view-card">${state.personnel.length ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>${t('app_th_name', 'Nom')}</th><th>${t('app_th_role', 'Rôle')}</th><th>${t('app_th_phone', 'Téléphone')}</th><th>${t('app_th_store', 'Boutique')}</th><th>${t('app_th_access', 'Accès')}</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty-state"><strong>' + t('app_no_member', 'Aucune personne') + '</strong><span>' + t('app_no_member_sub', 'Ajoutez vos premiers vendeurs pour qu’ils enregistrent des opérations.') + '</span></div>'}</section>`;
   }
 
   function reportsView() {
@@ -366,25 +368,25 @@
     periodSales.forEach(sale => { byProduct[sale.nom_produit] = byProduct[sale.nom_produit] || { quantite: 0, montant: 0 }; byProduct[sale.nom_produit].quantite += sale.quantite; byProduct[sale.nom_produit].montant += sale.montant; });
     const productRows = Object.entries(byProduct).sort((a, b) => b[1].montant - a[1].montant).map(([nom, stats]) => `<tr><td><strong>${escapeHtml(nom)}</strong></td><td>${stats.quantite}</td><td><strong>${money(stats.montant)}</strong></td></tr>`);
     const bySeller = {};
-    periodSales.forEach(sale => { const seller = sale.personnel?.nom || sale.admin_nom || 'Propriétaire'; bySeller[seller] = bySeller[seller] || { ventes: 0, montant: 0 }; bySeller[seller].ventes += 1; bySeller[seller].montant += sale.montant; });
+    periodSales.forEach(sale => { const seller = sale.personnel?.nom || sale.admin_nom || t('app_owner', 'Propriétaire'); bySeller[seller] = bySeller[seller] || { ventes: 0, montant: 0 }; bySeller[seller].ventes += 1; bySeller[seller].montant += sale.montant; });
     const sellerRows = Object.entries(bySeller).sort((a, b) => b[1].montant - a[1].montant).map(([nom, stats]) => `<tr><td><strong>${escapeHtml(nom)}</strong></td><td>${stats.ventes}</td><td><strong>${money(stats.montant)}</strong></td></tr>`);
-    return `<div class="page-heading"><div><p class="eyebrow">Gestion opérationnelle</p><h1>Rapports</h1><p class="subtle">Détail jour par jour des ventes, dépenses et trésorerie${scope}.</p></div><div class="page-heading-actions">${periodSelector()}<button class="btn btn-light" data-action="export-csv-daily">Exporter CSV ↗</button><button class="btn btn-primary" data-action="print-report">${icon('printer', 14)} Imprimer / PDF</button></div></div>
+    return `<div class="page-heading"><div><p class="eyebrow">${t('app_eyebrow_ops', 'Gestion opérationnelle')}</p><h1>${t('app_view_rep_title', 'Rapports')}</h1><p class="subtle">${t('app_view_rep_sub', 'Détail jour par jour des ventes, dépenses et trésorerie')}${scope}.</p></div><div class="page-heading-actions">${periodSelector()}<button class="btn btn-light" data-action="export-csv-daily">${t('app_export_csv', 'Exporter CSV ↗')}</button><button class="btn btn-primary" data-action="print-report">${icon('printer', 14)} ${t('app_print', 'Imprimer / PDF')}</button></div></div>
     <section class="stats-grid">
-      <article class="glass-card stat-card"><div class="stat-top"><span>Total des ventes</span><span class="stat-symbol">${icon('trendingUp')}</span></div><h2>${money(periodTotals.sales)}</h2><div class="stat-foot neutral">Sur la période sélectionnée</div></article>
-      <article class="glass-card stat-card"><div class="stat-top"><span>Total des dépenses</span><span class="stat-symbol">${icon('trendingDown')}</span></div><h2>${money(periodTotals.expenses)}</h2><div class="stat-foot neutral">Sur la période sélectionnée</div></article>
-      <article class="glass-card stat-card"><div class="stat-top"><span>Résultat net</span><span class="stat-symbol">${icon('wallet')}</span></div><h2 class="${periodTotals.net >= 0 ? 'positive' : 'negative'}">${periodTotals.net >= 0 ? '+ ' : '− '}${money(Math.abs(periodTotals.net))}</h2><div class="stat-foot ${periodTotals.net >= 0 ? '' : 'negative'}">Ventes − dépenses</div></article>
+      <article class="glass-card stat-card"><div class="stat-top"><span>${t('app_rep_total_sales', 'Total des ventes')}</span><span class="stat-symbol">${icon('trendingUp')}</span></div><h2>${money(periodTotals.sales)}</h2><div class="stat-foot neutral">${t('app_rep_period', 'Sur la période sélectionnée')}</div></article>
+      <article class="glass-card stat-card"><div class="stat-top"><span>${t('app_rep_total_exp', 'Total des dépenses')}</span><span class="stat-symbol">${icon('trendingDown')}</span></div><h2>${money(periodTotals.expenses)}</h2><div class="stat-foot neutral">${t('app_rep_period', 'Sur la période sélectionnée')}</div></article>
+      <article class="glass-card stat-card"><div class="stat-top"><span>${t('app_rep_net', 'Résultat net')}</span><span class="stat-symbol">${icon('wallet')}</span></div><h2 class="${periodTotals.net >= 0 ? 'positive' : 'negative'}">${periodTotals.net >= 0 ? '+ ' : '− '}${money(Math.abs(periodTotals.net))}</h2><div class="stat-foot ${periodTotals.net >= 0 ? '' : 'negative'}">${t('app_rep_sales_expenses', 'Ventes − dépenses')}</div></article>
     </section>
     <section class="glass-card panel">
-      <div class="panel-header"><div><h3>Ventes, dépenses et résultat par jour</h3><p>Filtré selon la boutique et la période</p></div></div>
-      ${reportSnapshotDaily(periodSales, periodExpenses) ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>Jour</th><th>Ventes</th><th>Dépenses</th><th>Résultat</th></tr></thead><tbody>${reportSnapshotDaily(periodSales, periodExpenses)}</tbody></table></div>` : '<div class="empty-state"><strong>Aucune donnée</strong>Aucune vente ou dépense enregistrée pour ce filtre.</div>'}
+      <div class="panel-header"><div><h3>${t('app_rep_daily', 'Ventes, dépenses et résultat par jour')}</h3><p>${t('app_rep_daily_sub', 'Filtré selon la boutique et la période')}</p></div></div>
+      ${reportSnapshotDaily(periodSales, periodExpenses) ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>${t('app_th_day', 'Jour')}</th><th>${t('app_th_sales', 'Ventes')}</th><th>${t('app_th_expenses', 'Dépenses')}</th><th>${t('app_th_result', 'Résultat')}</th></tr></thead><tbody>${reportSnapshotDaily(periodSales, periodExpenses)}</tbody></table></div>` : '<div class="empty-state"><strong>' + t('app_rep_no_data', 'Aucune donnée') + '</strong>' + t('app_rep_no_data_sub', 'Aucune vente ou dépense enregistrée pour ce filtre.') + '</div>'}
     </section>
     <section class="content-grid" style="margin-top:14px">
-      <article class="glass-card panel"><div class="panel-header"><div><h3>Ventes par produit</h3><p>Quantités et montants sur la période</p></div></div>${productRows.length ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>Produit</th><th>Quantité</th><th>Montant</th></tr></thead><tbody>${productRows}</tbody></table></div>` : '<div class="empty-state"><strong>Aucune vente</strong>Aucun produit vendu sur la période.</div>'}</article>
-      <article class="glass-card panel"><div class="panel-header"><div><h3>Ventes par vendeur</h3><p>Performance sur la période</p></div></div>${sellerRows.length ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>Vendeur</th><th>Ventes</th><th>Montant</th></tr></thead><tbody>${sellerRows}</tbody></table></div>` : '<div class="empty-state"><strong>Aucune vente</strong>Aucune vente sur la période.</div>'}</article>
+      <article class="glass-card panel"><div class="panel-header"><div><h3>${t('app_rep_by_product', 'Ventes par produit')}</h3><p>${t('app_rep_by_product_sub', 'Quantités et montants sur la période')}</p></div></div>${productRows.length ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>${t('app_th_product', 'Produit')}</th><th>${t('app_th_quantity', 'Quantité')}</th><th>${t('app_th_amount', 'Montant')}</th></tr></thead><tbody>${productRows}</tbody></table></div>` : '<div class="empty-state"><strong>' + t('app_no_sales', 'Aucune vente') + '</strong>' + t('app_rep_no_product_sale', 'Aucun produit vendu sur la période.') + '</div>'}</article>
+      <article class="glass-card panel"><div class="panel-header"><div><h3>${t('app_rep_by_seller', 'Ventes par vendeur')}</h3><p>${t('app_rep_by_seller_sub', 'Performance sur la période')}</p></div></div>${sellerRows.length ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>${t('app_th_seller', 'Vendeur')}</th><th>${t('app_th_sales', 'Ventes')}</th><th>${t('app_th_amount', 'Montant')}</th></tr></thead><tbody>${sellerRows}</tbody></table></div>` : '<div class="empty-state"><strong>' + t('app_no_sales', 'Aucune vente') + '</strong>' + t('app_rep_no_period_sale', 'Aucune vente sur la période.') + '</div>'}</article>
     </section>
     <section class="glass-card panel" style="margin-top:14px">
-      <div class="panel-header"><div><h3>Historique des caisses</h3><p>Ouvertures et fermetures passées</p></div><button class="text-link" data-action="export-csv-cash">Exporter CSV ↗</button></div>
-      ${reportSnapshotCash() || '<div class="empty-state"><strong>Aucun historique de caisse</strong>Ouvrez puis fermez une caisse pour voir son historique ici.</div>'}
+      <div class="panel-header"><div><h3>${t('app_rep_cash_hist', 'Historique des caisses')}</h3><p>${t('app_rep_cash_hist_sub', 'Ouvertures et fermetures passées')}</p></div><button class="text-link" data-action="export-csv-cash">${t('app_export_csv', 'Exporter CSV ↗')}</button></div>
+      ${reportSnapshotCash() || '<div class="empty-state"><strong>' + t('app_rep_no_cash', 'Aucun historique de caisse') + '</strong>' + t('app_rep_no_cash_sub', 'Ouvrez puis fermez une caisse pour voir son historique ici.') + '</div>'}
     </section>`;
   }
 
@@ -404,7 +406,7 @@
       const ecart = item.ecart || 0;
       return `<tr><td><strong>${toTime(item.date_fermeture)}</strong></td><td class="muted">${escapeHtml(storeName(item.magasin_id))}</td><td>${money(item.montant_ouverture)}</td><td>${money(item.solde_theorique ?? (item.montant_fermeture - ecart))}</td><td>${money(item.montant_fermeture)}</td><td class="${ecart >= 0 ? 'positive' : 'negative'}">${ecart >= 0 ? '+ ' : '− '}${money(Math.abs(ecart))}</td></tr>`;
     }).join('');
-    return rows ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>Clôturée le</th><th>Boutique</th><th>Ouverture</th><th>Solde théorique</th><th>Solde réel</th><th>Écart</th></tr></thead><tbody>${rows}</tbody></table></div>` : null;
+    return rows ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>${t('app_th_closed_at', 'Clôturée le')}</th><th>${t('app_th_store', 'Boutique')}</th><th>${t('app_th_opening', 'Ouverture')}</th><th>${t('app_th_theoretical', 'Solde théorique')}</th><th>${t('app_th_real', 'Solde réel')}</th><th>${t('app_th_gap', 'Écart')}</th></tr></thead><tbody>${rows}</tbody></table></div>` : null;
   }
 
   function storeOptions() {
@@ -412,81 +414,81 @@
   }
 
   function openModal(type, payload = null) {
-    if (state.isPersonnel && ['product', 'team', 'magasin', 'settings', 'magasin-rename', 'magasin-delete'].includes(type)) { showToast('Action non autorisée.'); return; }
+    if (state.isPersonnel && ['product', 'team', 'magasin', 'settings', 'magasin-rename', 'magasin-delete'].includes(type)) { showToast(t('app_toast_forbidden', 'Action non autorisée.')); return; }
     const modal = document.createElement('div');
     modal.className = 'modal-backdrop';
-    let title = 'Nouvelle entrée';
+    let title = t('app_modal_default', 'Nouvelle entrée');
     let fields = '';
     const save = () => saveModal(type, modal);
 
     if (type === 'sale') {
-      title = 'Enregistrer une vente';
-      const storeField = state.isPersonnel ? '' : `<div class="field"><label>Boutique</label><select id="modal-store"><option value="">— Sélectionner —</option>${storeOptions()}</select></div>`;
+      title = t('app_modal_sale', 'Enregistrer une vente');
+      const storeField = state.isPersonnel ? '' : `<div class="field"><label>${t('app_th_store', 'Boutique')}</label><select id="modal-store"><option value="">${t('app_modal_store_ph', '— Sélectionner —')}</option>${storeOptions()}</select></div>`;
       const catalogProducts = state.produits.filter(product => product.actif !== false && (state.isPersonnel ? product.magasin_id === state.store || product.magasin_id === null : true));
       const catalogGrid = catalogProducts.length
         ? `<div class="sale-catalog-grid">${catalogProducts.map(product => `<button type="button" class="sale-catalog-item" data-catalog-product="${product.id}"><span class="sale-catalog-name">${escapeHtml(product.nom)}</span><span class="sale-catalog-prix">${money(product.prix)}</span><span class="sale-catalog-stock ${product.stock > 0 ? '' : 'stock-out'}">Stock : ${product.stock}</span></button>`).join('')}</div>`
-        : '<p class="subtle">Aucun produit dans le catalogue. Ajoutez-en depuis la vue Produits.</p>';
-      fields = `<div class="catalog-check"><input type="checkbox" id="modal-use-catalog" /> <label for="modal-use-catalog">Choisir dans le stock</label></div>
-        <div class="catalog-panel hidden" id="catalog-panel"><div class="sale-catalog-search"><input type="text" id="modal-catalog-search" placeholder="Rechercher un produit…" /></div>${catalogGrid}</div>
-        <div class="field free-field"><label>Produit (optionnel)</label><input id="modal-product" placeholder="Nom du produit" list="product-list" /><datalist id="product-list">${state.produits.map(product => `<option value="${escapeHtml(product.nom)}">`).join('')}</datalist></div>
-        <div class="field"><label>Quantité</label><input id="modal-quantite" type="number" min="1" value="1" /></div><div class="field"><label>Montant total (${escapeHtml(state.entreprise.devise)})</label><input id="modal-amount" type="number" placeholder="0" /></div>${storeField}<div class="field"><label>Mode de paiement</label><select id="modal-payment"><option value="liquide">Liquide</option><option value="mobile_money">Mobile money</option></select></div>`;
+        : '<p class="subtle">' + t('app_modal_no_catalog', 'Aucun produit dans le catalogue. Ajoutez-en depuis la vue Produits.') + '</p>';
+      fields = `<div class="catalog-check"><input type="checkbox" id="modal-use-catalog" /> <label for="modal-use-catalog">${t('app_modal_use_catalog', 'Choisir dans le stock')}</label></div>
+        <div class="catalog-panel hidden" id="catalog-panel"><div class="sale-catalog-search"><input type="text" id="modal-catalog-search" placeholder="${t('app_modal_search_product', 'Rechercher un produit…')}" /></div>${catalogGrid}</div>
+        <div class="field free-field"><label>${t('app_modal_product_opt', 'Produit (optionnel)')}</label><input id="modal-product" placeholder="${t('app_modal_product_ph', 'Nom du produit')}" list="product-list" /><datalist id="product-list">${state.produits.map(product => `<option value="${escapeHtml(product.nom)}">`).join('')}</datalist></div>
+        <div class="field"><label>${t('app_modal_qty', 'Quantité')}</label><input id="modal-quantite" type="number" min="1" value="1" /></div><div class="field"><label>${t('app_modal_amount', 'Montant total')} (${escapeHtml(state.entreprise.devise)})</label><input id="modal-amount" type="number" placeholder="0" /></div>${storeField}<div class="field"><label>${t('app_modal_payment', 'Mode de paiement')}</label><select id="modal-payment"><option value="liquide">${t('app_pay_cash', 'Liquide')}</option><option value="mobile_money">${t('app_pay_mobile', 'Mobile money')}</option></select></div>`;
     } else if (type === 'expense') {
-      title = 'Ajouter une dépense';
-      const storeField = state.isPersonnel ? '' : `<div class="field"><label>Boutique</label><select id="modal-store">${storeOptions()}</select></div>`;
-      fields = `<div class="field"><label>Motif</label><input id="modal-reason" placeholder="Ex. Transport livraison" /></div><div class="field"><label>Montant (${escapeHtml(state.entreprise.devise)})</label><input id="modal-amount" type="number" placeholder="0" /></div>${storeField}`;
+      title = t('app_modal_expense', 'Ajouter une dépense');
+      const storeField = state.isPersonnel ? '' : `<div class="field"><label>${t('app_th_store', 'Boutique')}</label><select id="modal-store">${storeOptions()}</select></div>`;
+      fields = `<div class="field"><label>${t('app_modal_reason', 'Motif')}</label><input id="modal-reason" placeholder="${t('app_modal_reason_ph', 'Ex. Transport livraison')}" /></div><div class="field"><label>${t('app_modal_amount', 'Montant total')} (${escapeHtml(state.entreprise.devise)})</label><input id="modal-amount" type="number" placeholder="0" /></div>${storeField}`;
     } else if (type === 'product') {
-      title = 'Ajouter un produit';
-      fields = `<div class="field"><label>Nom du produit</label><input id="modal-product" placeholder="Ex. Biscuit" /></div><div class="field"><label>Catégorie</label><input id="modal-categorie" placeholder="Ex. Épicerie" /></div><div class="field"><label>Prix de vente (${escapeHtml(state.entreprise.devise)})</label><input id="modal-price" type="number" placeholder="0" /></div><div class="field"><label>Stock initial</label><input id="modal-stock" type="number" value="0" min="0" /></div><div class="field"><label>Boutique</label><select id="modal-store"><option value="">Toutes les boutiques (produit commun)</option>${storeOptions()}</select></div>`;
+      title = t('app_modal_add_product', 'Ajouter un produit');
+      fields = `<div class="field"><label>${t('app_modal_prod_name', 'Nom du produit')}</label><input id="modal-product" placeholder="${t('app_modal_prod_name_ph', 'Ex. Biscuit')}" /></div><div class="field"><label>${t('app_modal_category', 'Catégorie')}</label><input id="modal-categorie" placeholder="${t('app_modal_category_ph', 'Ex. Épicerie')}" /></div><div class="field"><label>${t('app_modal_price', 'Prix de vente')} (${escapeHtml(state.entreprise.devise)})</label><input id="modal-price" type="number" placeholder="0" /></div><div class="field"><label>${t('app_modal_stock_init', 'Stock initial')}</label><input id="modal-stock" type="number" value="0" min="0" /></div><div class="field"><label>${t('app_th_store', 'Boutique')}</label><select id="modal-store"><option value="">${t('app_modal_store_common', 'Toutes les boutiques (produit commun)')}</option>${storeOptions()}</select></div>`;
     } else if (type === 'product-edit') {
       const product = state.produits.find(item => item.id === payload);
-      if (!product) { showToast('Produit introuvable.'); return; }
-      title = 'Modifier le produit';
-      fields = `<div class="field"><label>Nom du produit</label><input id="modal-product" value="${escapeHtml(product.nom)}" /></div><div class="field"><label>Catégorie</label><input id="modal-categorie" value="${escapeHtml(product.categorie || '')}" placeholder="Ex. Épicerie" /></div><div class="field"><label>Prix de vente (${escapeHtml(state.entreprise.devise)})</label><input id="modal-price" type="number" value="${product.prix}" /></div><div class="field"><label>Stock</label><input id="modal-stock" type="number" value="${product.stock}" min="0" /></div>`;
+      if (!product) { showToast(t('app_toast_product_gone', 'Produit introuvable.')); return; }
+      title = t('app_modal_edit_product', 'Modifier le produit');
+      fields = `<div class="field"><label>${t('app_modal_prod_name', 'Nom du produit')}</label><input id="modal-product" value="${escapeHtml(product.nom)}" /></div><div class="field"><label>${t('app_modal_category', 'Catégorie')}</label><input id="modal-categorie" value="${escapeHtml(product.categorie || '')}" placeholder="${t('app_modal_category_ph', 'Ex. Épicerie')}" /></div><div class="field"><label>${t('app_modal_price', 'Prix de vente')} (${escapeHtml(state.entreprise.devise)})</label><input id="modal-price" type="number" value="${product.prix}" /></div><div class="field"><label>${t('app_modal_stock', 'Stock')}</label><input id="modal-stock" type="number" value="${product.stock}" min="0" /></div>`;
       modal.dataset.productId = product.id;
     } else if (type === 'team') {
-      title = 'Ajouter une personne';
-      fields = `<div class="field"><label>Nom complet</label><input id="modal-name" placeholder="Ex. Fatou Diop" /></div><div class="field"><label>Numéro de téléphone</label><input id="modal-phone" type="tel" inputmode="numeric" placeholder="77 000 00 00" /></div><div class="field"><label>Code à 4 chiffres</label><input id="modal-pin" type="password" inputmode="numeric" maxlength="4" placeholder="••••" /></div><div class="field"><label>Boutique</label><select id="modal-store">${storeOptions()}</select></div>`;
+      title = t('app_modal_add_person', 'Ajouter une personne');
+      fields = `<div class="field"><label>${t('app_modal_fullname', 'Nom complet')}</label><input id="modal-name" placeholder="${t('app_modal_fullname_ph', 'Ex. Fatou Diop')}" /></div><div class="field"><label>${t('app_modal_phone', 'Numéro de téléphone')}</label><input id="modal-phone" type="tel" inputmode="numeric" placeholder="${t('app_modal_phone_ph', '77 000 00 00')}" /></div><div class="field"><label>${t('app_modal_pin', 'Code à 4 chiffres')}</label><input id="modal-pin" type="password" inputmode="numeric" maxlength="4" placeholder="••••" /></div><div class="field"><label>${t('app_th_store', 'Boutique')}</label><select id="modal-store">${storeOptions()}</select></div>`;
     } else if (type === 'open-cash' || type === 'close-cash') {
       const isOpen = type === 'open-cash';
-      title = isOpen ? 'Ouvrir une caisse' : 'Fermer la caisse';
-      const label = isOpen ? 'Montant d’ouverture' : 'Montant en caisse à la fermeture';
+      title = isOpen ? t('app_modal_open_cash', 'Ouvrir une caisse') : t('app_modal_close_cash', 'Fermer la caisse');
+      const label = isOpen ? t('app_modal_open_amount', 'Montant d’ouverture') : t('app_modal_close_amount', 'Montant en caisse à la fermeture');
       fields = `<div class="field"><label>${label} (${escapeHtml(state.entreprise.devise)})</label><input id="modal-amount" type="number" placeholder="0" /></div>`;
     } else if (type === 'magasin') {
-      title = 'Ajouter une boutique';
-      fields = `<div class="field"><label>Nom de la boutique</label><input id="modal-store-name" placeholder="Ex. Boutique Ngor" /></div><p class="subtle">La boutique s'ajoute à votre entreprise ${escapeHtml(state.entreprise.nom || '')}. Vous pouvez le renommer plus tard.</p>`;
+      title = t('app_modal_add_store', 'Ajouter une boutique');
+      fields = `<div class="field"><label>${t('app_modal_store_name', 'Nom de la boutique')}</label><input id="modal-store-name" placeholder="${t('app_modal_store_name_ph', 'Ex. Boutique Ngor')}" /></div><p class="subtle">${t('app_modal_store_added_sub', "La boutique s'ajoute à votre entreprise")} ${escapeHtml(state.entreprise.nom || '')}. ${t('app_modal_store_rename_later', 'Vous pouvez le renommer plus tard.')}</p>`;
     } else if (type === 'magasin-rename') {
       const magasin = state.magasins.find(item => item.id === payload);
-      if (!magasin) { showToast('Boutique introuvable.'); return; }
-      title = 'Renommer la boutique';
-      fields = `<div class="field"><label>Nom de la boutique</label><input id="modal-store-name" value="${escapeHtml(magasin.nom)}" /></div>`;
+      if (!magasin) { showToast(t('app_toast_store_gone', 'Boutique introuvable.')); return; }
+      title = t('app_modal_rename_store', 'Renommer la boutique');
+      fields = `<div class="field"><label>${t('app_modal_store_name', 'Nom de la boutique')}</label><input id="modal-store-name" value="${escapeHtml(magasin.nom)}" /></div>`;
       modal.dataset.storeId = magasin.id;
     } else if (type === 'magasin-delete') {
       const magasin = state.magasins.find(item => item.id === payload);
-      if (!magasin) { showToast('Boutique introuvable.'); return; }
-      if (state.magasins.length <= 1) { showToast('Impossible de supprimer votre dernière boutique.'); return; }
-      title = 'Supprimer la boutique';
-      fields = `<p class="subtle" style="grid-column:1/-1">Voulez-vous vraiment supprimer <strong>« ${escapeHtml(magasin.nom)} »</strong> ?<br><br>Ses ventes, dépenses, caisses, produits propres et membres du personnel seront définitivement supprimés. Les produits communs resteront.</p>`;
+      if (!magasin) { showToast(t('app_toast_store_gone', 'Boutique introuvable.')); return; }
+      if (state.magasins.length <= 1) { showToast(t('app_toast_last_store', 'Impossible de supprimer votre dernière boutique.')); return; }
+      title = t('app_modal_delete_store', 'Supprimer la boutique');
+      fields = `<p class="subtle" style="grid-column:1/-1">${t('app_modal_delete_confirm', 'Voulez-vous vraiment supprimer')} <strong>« ${escapeHtml(magasin.nom)} »</strong> ?<br><br>${t('app_modal_delete_cascade', 'Ses ventes, dépenses, caisses, produits propres et membres du personnel seront définitivement supprimés. Les produits communs resteront.')}</p>`;
       modal.dataset.storeId = magasin.id;
     } else if (type === 'settings') {
-      title = 'Paramètres';
+      title = t('app_modal_settings', 'Paramètres');
       const profil = window.solmaCompteSession?.compte || {};
       const settingsFields = state.isPersonnel
-        ? `<div class="field"><label>Nom</label><input id="modal-profile-nom" value="${escapeHtml(profil.nom || '')}" /></div>`
-        : `<div class="field"><label>Nom</label><input id="modal-profile-nom" value="${escapeHtml(profil.nom || '')}" /></div>
-           <div class="field"><label>Email</label><input id="modal-profile-email" type="email" value="${escapeHtml(profil.email || '')}" /></div>
-           <div class="field"><label>Entreprise</label><input id="modal-entreprise-nom" value="${escapeHtml(state.entreprise.nom || '')}" /></div>
-           <div class="field"><label>Devise</label><input id="modal-entreprise-devise" value="${escapeHtml(state.entreprise.devise || 'FCFA')}" /></div>
-           <div class="field"><label>Mot de passe actuel</label><input id="modal-profile-password-actuel" type="password" autocomplete="current-password" placeholder="Pour modifier le mot de passe" /></div>
-           <div class="field"><label>Nouveau mot de passe</label><input id="modal-profile-password-nouveau" type="password" autocomplete="new-password" placeholder="8 caractères minimum" /></div>`;
+        ? `<div class="field"><label>${t('app_modal_profile_name', 'Nom')}</label><input id="modal-profile-nom" value="${escapeHtml(profil.nom || '')}" /></div>`
+        : `<div class="field"><label>${t('app_modal_profile_name', 'Nom')}</label><input id="modal-profile-nom" value="${escapeHtml(profil.nom || '')}" /></div>
+           <div class="field"><label>${t('app_modal_profile_email', 'Email')}</label><input id="modal-profile-email" type="email" value="${escapeHtml(profil.email || '')}" /></div>
+           <div class="field"><label>${t('app_modal_company', 'Entreprise')}</label><input id="modal-entreprise-nom" value="${escapeHtml(state.entreprise.nom || '')}" /></div>
+           <div class="field"><label>${t('app_modal_currency', 'Devise')}</label><input id="modal-entreprise-devise" value="${escapeHtml(state.entreprise.devise || 'FCFA')}" /></div>
+           <div class="field"><label>${t('app_modal_current_pw', 'Mot de passe actuel')}</label><input id="modal-profile-password-actuel" type="password" autocomplete="current-password" placeholder="${t('app_modal_current_pw_ph', 'Pour modifier le mot de passe')}" /></div>
+           <div class="field"><label>${t('app_modal_new_pw', 'Nouveau mot de passe')}</label><input id="modal-profile-password-nouveau" type="password" autocomplete="new-password" placeholder="${t('app_modal_new_pw_ph', '8 caractères minimum')}" /></div>`;
       fields = settingsFields;
     } else if (type === 'team-edit') {
       const member = state.personnel.find(item => item.id === payload);
-      if (!member) { showToast('Membre introuvable.'); return; }
-      title = 'Modifier la personne';
-      fields = `<div class="field"><label>Nom complet</label><input id="modal-name" value="${escapeHtml(member.nom)}" /></div><div class="field"><label>Numéro de téléphone</label><input id="modal-phone" type="tel" inputmode="numeric" placeholder="77 000 00 00" value="${escapeHtml(member.telephone)}" /></div><div class="field"><label>Code à 4 chiffres</label><input id="modal-pin" type="password" inputmode="numeric" maxlength="4" placeholder="•••• (laisser vide pour ne pas changer)" /></div><div class="field"><label>Boutique</label><select id="modal-store">${storeOptions().replace(`value="${member.magasin_id}"`, `value="${member.magasin_id}" selected`)}</select></div>`;
+      if (!member) { showToast(t('app_toast_member_gone', 'Membre introuvable.')); return; }
+      title = t('app_modal_edit_person', 'Modifier la personne');
+      fields = `<div class="field"><label>${t('app_modal_fullname', 'Nom complet')}</label><input id="modal-name" value="${escapeHtml(member.nom)}" /></div><div class="field"><label>${t('app_modal_phone', 'Numéro de téléphone')}</label><input id="modal-phone" type="tel" inputmode="numeric" placeholder="${t('app_modal_phone_ph', '77 000 00 00')}" value="${escapeHtml(member.telephone)}" /></div><div class="field"><label>${t('app_modal_pin', 'Code à 4 chiffres')}</label><input id="modal-pin" type="password" inputmode="numeric" maxlength="4" placeholder="${t('app_modal_pin_keep', '•••• (laisser vide pour ne pas changer)')}" /></div><div class="field"><label>${t('app_th_store', 'Boutique')}</label><select id="modal-store">${storeOptions().replace(`value="${member.magasin_id}"`, `value="${member.magasin_id}" selected`)}</select></div>`;
       modal.dataset.personnelId = member.id;
     }
-    modal.innerHTML = `<div class="modal glass-card"><button class="modal-close" aria-label="Fermer">${icon('close', 16)}</button><p class="eyebrow">SamaCaisse</p><h2>${title}</h2><p class="subtle">${type === 'magasin-delete' ? 'Cette action est définitive.' : 'Les informations sont enregistrées immédiatement.'}</p><div class="form-grid modal-fields">${fields}</div><div class="form-actions"><button class="btn btn-light modal-cancel">Annuler</button><button class="btn ${type === 'magasin-delete' ? 'btn-danger' : 'btn-primary'} modal-save">${type === 'magasin-delete' ? 'Supprimer' : 'Enregistrer'}</button></div></div>`;
+    modal.innerHTML = `<div class="modal glass-card"><button class="modal-close" aria-label="${t('app_modal_close_btn', 'Fermer')}">${icon('close', 16)}</button><p class="eyebrow">SamaCaisse</p><h2>${title}</h2><p class="subtle">${type === 'magasin-delete' ? t('app_modal_delete_warn', 'Cette action est définitive.') : t('app_modal_saved_live', 'Les informations sont enregistrées immédiatement.')}</p><div class="form-grid modal-fields">${fields}</div><div class="form-actions"><button class="btn btn-light modal-cancel">${t('app_btn_cancel', 'Annuler')}</button><button class="btn ${type === 'magasin-delete' ? 'btn-danger' : 'btn-primary'} modal-save">${type === 'magasin-delete' ? t('app_btn_delete', 'Supprimer') : t('app_btn_save', 'Enregistrer')}</button></div></div>`;
     document.body.appendChild(modal);
     modal.querySelector('.modal-close').onclick = () => modal.remove();
     modal.querySelector('.modal-cancel').onclick = () => modal.remove();
@@ -536,117 +538,117 @@
 
   async function saveModal(type, modal) {
     const amount = Number(modal.querySelector('#modal-amount')?.value || 0);
-    const required = val => { if (!val) { showToast('Veuillez renseigner tous les champs requis.'); return false; } return true; };
+    const required = val => { if (!val) { showToast(t('app_toast_required', 'Veuillez renseigner tous les champs requis.')); return false; } return true; };
     if (type === 'sale') {
       const rawProductName = modal.querySelector('#modal-product').value.trim();
       const productName = rawProductName || 'Vente';
       const quantite = Number(modal.querySelector('#modal-quantite').value || 1);
       const magId = state.isPersonnel ? state.store : modal.querySelector('#modal-store').value;
       const payment = modal.querySelector('#modal-payment').value;
-      if (!magId || amount <= 0 || quantite <= 0) { showToast('Renseignez le montant et la boutique.'); return; }
+      if (!magId || amount <= 0 || quantite <= 0) { showToast(t('app_toast_sale_need', 'Renseignez le montant et la boutique.')); return; }
       const matchedProduct = rawProductName ? state.produits.find(item => item.nom === rawProductName && item.actif !== false && (item.magasin_id === magId || item.magasin_id === null)) : null;
       const { response, payload } = await API('/api/sales', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { produit_id: matchedProduct?.id || null, nom_produit: productName, quantite, montant: amount, mode_paiement: payment, magasin_id: magId } });
-      if (!response.ok) { showToast(payload.error || 'Vente impossible.'); return; }
+      if (!response.ok) { showToast(payload.error || t('app_toast_sale_ko', 'Vente impossible.')); return; }
       modal.remove();
       await loadData();
-      showToast('Vente enregistrée.');
+      showToast(t('app_toast_sale_ok', 'Vente enregistrée.'));
     } else if (type === 'expense') {
       const reason = modal.querySelector('#modal-reason').value.trim();
       const magId = state.isPersonnel ? state.store : modal.querySelector('#modal-store').value;
-      if (!required(reason) || amount <= 0 || !magId) { showToast('Renseignez le motif, le montant et la boutique.'); return; }
+      if (!required(reason) || amount <= 0 || !magId) { showToast(t('app_toast_exp_need', 'Renseignez le motif, le montant et la boutique.')); return; }
       const { response, payload } = await API('/api/expenses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { montant: amount, motif: reason, magasin_id: magId } });
-      if (!response.ok) { showToast(payload.error || 'Dépense impossible.'); return; }
+      if (!response.ok) { showToast(payload.error || t('app_toast_exp_ko', 'Dépense impossible.')); return; }
       modal.remove();
       await loadData();
-      showToast('Dépense enregistrée.');
+      showToast(t('app_toast_exp_ok', 'Dépense enregistrée.'));
     } else if (type === 'product') {
       const name = modal.querySelector('#modal-product').value.trim();
       const categorie = modal.querySelector('#modal-categorie').value.trim();
       const price = Number(modal.querySelector('#modal-price').value || 0);
       const stock = Number(modal.querySelector('#modal-stock').value || 0);
       const magId = modal.querySelector('#modal-store').value || null;
-      if (!required(name) || price <= 0) { showToast('Renseignez le nom et le prix.'); return; }
+      if (!required(name) || price <= 0) { showToast(t('app_toast_prod_need', 'Renseignez le nom et le prix.')); return; }
       const { response, payload } = await API('/api/products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { action: 'create', nom: name, categorie, prix: price, stock, magasin_id: magId, entreprise_id: state.entreprise_id } });
-      if (!response.ok) { showToast(payload.error || 'Produit impossible.'); return; }
+      if (!response.ok) { showToast(payload.error || t('app_toast_prod_ko', 'Produit impossible.')); return; }
       modal.remove();
       await loadData();
-      showToast('Produit ajouté.');
+      showToast(t('app_toast_prod_ok', 'Produit ajouté.'));
     } else if (type === 'product-edit') {
       const productId = modal.dataset.productId;
       const name = modal.querySelector('#modal-product').value.trim();
       const categorie = modal.querySelector('#modal-categorie').value.trim();
       const price = Number(modal.querySelector('#modal-price').value || 0);
       const stock = Number(modal.querySelector('#modal-stock').value || 0);
-      if (!required(name) || price <= 0) { showToast('Renseignez le nom et le prix.'); return; }
+      if (!required(name) || price <= 0) { showToast(t('app_toast_prod_need', 'Renseignez le nom et le prix.')); return; }
       const { response, payload } = await API('/api/products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { action: 'update', produit_id: productId, nom: name, categorie, prix: price, stock } });
-      if (!response.ok) { showToast(payload.error || 'Modification impossible.'); return; }
+      if (!response.ok) { showToast(payload.error || t('app_toast_member_ko', 'Modification impossible.')); return; }
       modal.remove();
       await loadData();
-      showToast('Produit modifié.');
+      showToast(t('app_toast_prod_upd', 'Produit modifié.'));
     } else if (type === 'team') {
       const name = modal.querySelector('#modal-name').value.trim();
       const phone = modal.querySelector('#modal-phone').value.trim();
       const pin = modal.querySelector('#modal-pin').value.trim();
       const magId = modal.querySelector('#modal-store').value;
-      if (!required(name) || !required(phone) || !/^\d{4}$/.test(pin) || !magId) { showToast('Renseignez le nom, le téléphone, le code à 4 chiffres et la boutique.'); return; }
+      if (!required(name) || !required(phone) || !/^\d{4}$/.test(pin) || !magId) { showToast(t('app_toast_team_need', 'Renseignez le nom, le téléphone, le code à 4 chiffres et la boutique.')); return; }
       const { response, payload } = await API('/api/personnel', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { action: 'create', nom: name, telephone: phone, pin, magasin_id: magId } });
-      if (!response.ok) { showToast(payload.error === 'Ce numéro de téléphone est déjà utilisé dans votre entreprise.' ? 'Ce numéro est déjà utilisé.' : (payload.error || 'Création impossible.')); return; }
+      if (!response.ok) { showToast(payload.error === 'Ce numéro de téléphone est déjà utilisé dans votre entreprise.' ? t('app_toast_team_dup', 'Ce numéro est déjà utilisé.') : (payload.error || t('app_toast_team_ko', 'Création impossible.'))); return; }
       modal.remove();
       await loadData();
-      showToast('Personne ajoutée.');
+      showToast(t('app_toast_team_ok', 'Personne ajoutée.'));
     } else if (type === 'open-cash') {
       const magId = modal.dataset.store;
-      if (Number.isNaN(amount) || amount < 0) { showToast('Renseignez un montant d’ouverture.'); return; }
+      if (Number.isNaN(amount) || amount < 0) { showToast(t('app_toast_cash_open_need', 'Renseignez un montant d’ouverture.')); return; }
       const { response, payload } = await API('/api/cash?magasin_id=' + encodeURIComponent(magId), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { action: 'open', montant_ouverture: amount } });
-      if (!response.ok) { showToast(payload.error || 'Ouverture impossible.'); return; }
+      if (!response.ok) { showToast(payload.error || t('app_toast_cash_open_ko', 'Ouverture impossible.')); return; }
       modal.remove();
       await loadData();
-      showToast('Caisse ouverte.');
+      showToast(t('app_toast_cash_open_ok', 'Caisse ouverte.'));
     } else if (type === 'close-cash') {
       const magId = modal.dataset.store;
-      if (Number.isNaN(amount) || amount < 0) { showToast('Renseignez le montant de fermeture.'); return; }
+      if (Number.isNaN(amount) || amount < 0) { showToast(t('app_toast_cash_close_need', 'Renseignez le montant de fermeture.')); return; }
       const { response, payload } = await API('/api/cash?magasin_id=' + encodeURIComponent(magId), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { action: 'close', montant_fermeture: amount } });
-      if (!response.ok) { showToast(payload.error || 'Fermeture impossible.'); return; }
+      if (!response.ok) { showToast(payload.error || t('app_toast_cash_close_ko', 'Fermeture impossible.')); return; }
       modal.remove();
       await loadData();
-      showToast('Caisse fermée.');
+      showToast(t('app_toast_cash_close_ok', 'Caisse fermée.'));
     } else if (type === 'magasin') {
       const nom = modal.querySelector('#modal-store-name').value.trim();
-      if (!required(nom)) { showToast('Renseignez le nom de la boutique.'); return; }
+      if (!required(nom)) { showToast(t('app_toast_store_need', 'Renseignez le nom de la boutique.')); return; }
       const { response, payload } = await API('/api/magasins', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { entreprise_id: state.entreprise_id, nom } });
-      if (!response.ok) { showToast(payload.error || 'Création impossible.'); return; }
+      if (!response.ok) { showToast(payload.error || t('app_toast_store_ko', 'Création impossible.')); return; }
       modal.remove();
       state.store = payload.magasin.id;
       await loadData();
-      showToast('Boutique ajoutée.');
+      showToast(t('app_toast_store_ok', 'Boutique ajoutée.'));
     } else if (type === 'magasin-rename') {
       const storeId = modal.dataset.storeId;
       const nom = modal.querySelector('#modal-store-name').value.trim();
-      if (!required(nom)) { showToast('Renseignez le nom de la boutique.'); return; }
+      if (!required(nom)) { showToast(t('app_toast_store_need', 'Renseignez le nom de la boutique.')); return; }
       const { response, payload } = await API('/api/magasins', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { action: 'rename', magasin_id: storeId, nom } });
-      if (!response.ok) { showToast(payload.error || 'Renommage impossible.'); return; }
+      if (!response.ok) { showToast(payload.error || t('app_toast_store_ren_ko', 'Renommage impossible.')); return; }
       modal.remove();
       await loadData();
-      showToast('Boutique renommée.');
+      showToast(t('app_toast_store_ren_ok', 'Boutique renommée.'));
     } else if (type === 'magasin-delete') {
       const storeId = modal.dataset.storeId;
-      if (!storeId) { showToast('Boutique introuvable.'); return; }
-      if (!confirm('Supprimer définitivement cette boutique et toutes ses données ?')) return;
+      if (!storeId) { showToast(t('app_toast_store_gone', 'Boutique introuvable.')); return; }
+      if (!confirm(t('app_confirm_store_del', 'Supprimer définitivement cette boutique et toutes ses données ?'))) return;
       const { response, payload } = await API('/api/magasins', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { action: 'delete', magasin_id: storeId } });
-      if (!response.ok) { showToast(payload.error || 'Suppression impossible.'); return; }
+      if (!response.ok) { showToast(payload.error || t('app_toast_store_del_ko', 'Suppression impossible.')); return; }
       modal.remove();
       if (state.store === storeId) state.store = 'all';
       await loadData();
-      showToast('Boutique supprimée.');
+      showToast(t('app_toast_store_del_ok', 'Boutique supprimée.'));
     } else if (type === 'settings') {
       const nom = modal.querySelector('#modal-profile-nom').value.trim();
-      if (!required(nom)) { showToast('Renseignez votre nom.'); return; }
+      if (!required(nom)) { showToast(t('app_toast_profile_need', 'Renseignez votre nom.')); return; }
       if (!state.isPersonnel) {
         const entrepriseNom = modal.querySelector('#modal-entreprise-nom').value.trim();
         const devise = modal.querySelector('#modal-entreprise-devise').value.trim();
-        if (!required(entrepriseNom) || !required(devise)) { showToast('Renseignez l’entreprise et la devise.'); return; }
+        if (!required(entrepriseNom) || !required(devise)) { showToast(t('app_toast_company_need', 'Renseignez l’entreprise et la devise.')); return; }
         const { response, payload } = await API('/api/entreprise', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { entreprise_id: state.entreprise_id, nom: entrepriseNom, devise } });
-        if (!response.ok) { showToast(payload.error || 'Entreprise non modifiée.'); return; }
+        if (!response.ok) { showToast(payload.error || t('app_toast_company_ko', 'Entreprise non modifiée.')); return; }
       }
       const email = modal.querySelector('#modal-profile-email')?.value.trim();
       const passwordActuel = modal.querySelector('#modal-profile-password-actuel')?.value || '';
@@ -658,60 +660,60 @@
         body.nouveau_mot_de_passe = nouveauMotDePasse;
       }
       const { response, payload } = await API('/api/account', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body });
-      if (!response.ok) { showToast(payload.error || 'Profil non modifié.'); return; }
+      if (!response.ok) { showToast(payload.error || t('app_toast_profile_ko', 'Profil non modifié.')); return; }
       window.solmaCompteSession = { ...(window.solmaCompteSession || {}), compte: { ...(window.solmaCompteSession?.compte || {}), ...payload.compte } };
       modal.remove();
       await loadData();
       syncProfileUi();
-      showToast('Paramètres enregistrés.');
+      showToast(t('app_toast_settings_ok', 'Paramètres enregistrés.'));
     } else if (type === 'team-edit') {
       const personnelId = modal.dataset.personnelId;
       const nom = modal.querySelector('#modal-name').value.trim();
       const phone = modal.querySelector('#modal-phone').value.trim();
       const pin = modal.querySelector('#modal-pin').value.trim();
       const magId = modal.querySelector('#modal-store').value;
-      if (!required(nom) || !required(phone) || !magId) { showToast('Renseignez le nom, le téléphone et la boutique.'); return; }
+      if (!required(nom) || !required(phone) || !magId) { showToast(t('app_toast_member_need', 'Renseignez le nom, le téléphone et la boutique.')); return; }
       const body = { action: 'update', personnel_id: personnelId, nom, telephone: phone, magasin_id: magId };
       if (pin) {
-        if (!/^\d{4}$/.test(pin)) { showToast('Le code doit contenir 4 chiffres.'); return; }
+        if (!/^\d{4}$/.test(pin)) { showToast(t('app_toast_pin4', 'Le code doit contenir 4 chiffres.')); return; }
         body.pin = pin;
       }
       const { response, payload } = await API('/api/personnel', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
-      if (!response.ok) { showToast(payload.error || 'Modification impossible.'); return; }
+      if (!response.ok) { showToast(payload.error || t('app_toast_member_ko', 'Modification impossible.')); return; }
       modal.remove();
       await loadData();
-      showToast('Personne modifiée.');
+      showToast(t('app_toast_member_ok', 'Personne modifiée.'));
     }
   }
 
   async function cancelSale(saleId) {
-    if (!confirm('Annuler cette vente ? Le stock sera remis à jour.')) return;
+    if (!confirm(t('app_confirm_sale', 'Annuler cette vente ? Le stock sera remis à jour.'))) return;
     const { response, payload } = await API('/api/sales', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { action: 'cancel', sale_id: saleId } });
-    if (!response.ok) { showToast(payload.error || 'Annulation impossible.'); return; }
+    if (!response.ok) { showToast(payload.error || t('app_toast_sale_cancel_ko', 'Annulation impossible.')); return; }
     await loadData();
-    showToast('Vente annulée.');
+    showToast(t('app_toast_sale_cancelled', 'Vente annulée.'));
   }
   async function cancelExpense(expenseId) {
-    if (!confirm('Annuler cette dépense ?')) return;
+    if (!confirm(t('app_confirm_expense', 'Annuler cette dépense ?'))) return;
     const { response, payload } = await API('/api/expenses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { action: 'cancel', expense_id: expenseId } });
-    if (!response.ok) { showToast(payload.error || 'Annulation impossible.'); return; }
+    if (!response.ok) { showToast(payload.error || t('app_toast_exp_cancel_ko', 'Annulation impossible.')); return; }
     await loadData();
-    showToast('Dépense annulée.');
+    showToast(t('app_toast_exp_cancelled', 'Dépense annulée.'));
   }
   async function toggleProduct(productId, active) {
-    if (!confirm(active ? 'Réactiver ce produit ?' : 'Désactiver ce produit ? Il ne pourra plus être vendu.')) return;
+    if (!confirm(active ? t('app_confirm_prod_on', 'Réactiver ce produit ?') : t('app_confirm_prod_off', 'Désactiver ce produit ? Il ne pourra plus être vendu.'))) return;
     const { response, payload } = await API('/api/products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { action: 'toggle', produit_id: productId, actif: !active } });
-    if (!response.ok) { showToast(payload.error || 'Modification impossible.'); return; }
+    if (!response.ok) { showToast(payload.error || t('app_toast_member_ko', 'Modification impossible.')); return; }
     await loadData();
-    showToast('Produit mis à jour.');
+    showToast(t('app_toast_toggle_prod', 'Produit mis à jour.'));
   }
 
   async function togglePersonnel(personnelId, active) {
-    if (!confirm(active ? 'Désactiver cette personne ? Elle ne pourra plus se connecter.' : 'Réactiver cette personne ?')) return;
+    if (!confirm(active ? t('app_confirm_member_off', 'Désactiver cette personne ? Elle ne pourra plus se connecter.') : t('app_confirm_member_on', 'Réactiver cette personne ?'))) return;
       const { response, payload } = await API('/api/personnel', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { action: 'toggle', personnel_id: personnelId, actif: !active } });
-    if (!response.ok) { showToast(payload.error || 'Modification impossible.'); return; }
+    if (!response.ok) { showToast(payload.error || t('app_toast_member_ko', 'Modification impossible.')); return; }
     await loadData();
-    showToast('Accès mis à jour.');
+    showToast(t('app_toast_toggle_member', 'Accès mis à jour.'));
   }
 
   function bindViewEvents() {
@@ -781,13 +783,13 @@
     const menu = document.querySelector('#store-selector-menu');
     if (state.isPersonnel) {
       container.classList.add('hidden');
-      label.textContent = state.magasins.find(magasin => magasin.id === state.store)?.nom || 'Ma boutique';
+      label.textContent = state.magasins.find(magasin => magasin.id === state.store)?.nom || t('app_my_store', 'Ma boutique');
       state.store = state.magasins.find(magasin => magasin.id === state.store)?.id || (state.magasins[0]?.id || 'all');
       return;
     }
     container.classList.remove('hidden');
-    menu.innerHTML = `<button type="button" class="store-selector-option ${state.store === 'all' ? 'active' : ''}" data-store-value="all" role="option">Toutes les boutiques</button>` + state.magasins.map(magasin => `<button type="button" class="store-selector-option ${state.store === magasin.id ? 'active' : ''}" data-store-value="${magasin.id}" role="option">${escapeHtml(magasin.nom)}${state.magasins.length > 1 ? `<span class="store-selector-rename" data-store-rename="${magasin.id}" aria-label="Renommer ${escapeHtml(magasin.nom)}" title="Renommer">✎</span><span class="store-selector-delete" data-store-delete="${magasin.id}" aria-label="Supprimer ${escapeHtml(magasin.nom)}" title="Supprimer">🗑</span>` : ''}</button>`).join('') + `<button type="button" class="store-selector-option store-selector-add" data-store-new role="option">${icon('plus', 13)} Nouvelle boutique</button>`;
-    const currentLabel = state.store === 'all' ? 'Toutes les boutiques' : state.magasins.find(magasin => magasin.id === state.store)?.nom || 'Toutes les boutiques';
+    menu.innerHTML = `<button type="button" class="store-selector-option ${state.store === 'all' ? 'active' : ''}" data-store-value="all" role="option">${escapeHtml(t('store_all', 'Toutes les boutiques'))}</button>` + state.magasins.map(magasin => `<button type="button" class="store-selector-option ${state.store === magasin.id ? 'active' : ''}" data-store-value="${magasin.id}" role="option">${escapeHtml(magasin.nom)}${state.magasins.length > 1 ? `<span class="store-selector-rename" data-store-rename="${magasin.id}" aria-label="Renommer ${escapeHtml(magasin.nom)}" title="Renommer">✎</span><span class="store-selector-delete" data-store-delete="${magasin.id}" aria-label="Supprimer ${escapeHtml(magasin.nom)}" title="Supprimer">🗑</span>` : ''}</button>`).join('') + `<button type="button" class="store-selector-option store-selector-add" data-store-new role="option">${icon('plus', 13)} ${escapeHtml(t('store_new', 'Nouvelle boutique'))}</button>`;
+    const currentLabel = state.store === 'all' ? t('store_all', 'Toutes les boutiques') : state.magasins.find(magasin => magasin.id === state.store)?.nom || t('store_all', 'Toutes les boutiques');
     label.textContent = currentLabel;
     trigger.onclick = () => {
       const open = trigger.getAttribute('aria-expanded') === 'true';
@@ -927,6 +929,12 @@
 
   window.addEventListener('solma-auth-ready', init);
 
+  window.addEventListener('samacaisse-lang-changed', () => {
+    if (window.SamaCaisseI18n) window.SamaCaisseI18n.applyTranslations();
+    syncProfileUi();
+    if (state.token) render();
+  });
+
   if (window.solmaPersonnelSession?.token) {
     init();
   }
@@ -936,12 +944,12 @@
      ========================================================================== */
   const TOUR_KEY = 'samacaisse_tour_v1';
   const TOUR_STEPS = [
-    { title: 'Bienvenue sur SamaCaisse', text: 'Voici un tour rapide : en une minute, vous saurez où tout se trouve.', sel: null },
-    { title: 'Le menu', text: 'Touchez ici pour ouvrir le menu : ventes, caisses, dépenses, produits, personnel et rapports.', sel: '#mobile-menu' },
-    { title: 'Vos boutiques', text: 'Choisissez une boutique ou « Toutes les boutiques » : tout le tableau de bord suit ce choix.', sel: '#store-selector-custom' },
-    { title: 'Nouvelle vente', text: 'Le bouton le plus important : enregistrez une vente en renseignant juste le montant.', sel: '[data-action="new-sale"]' },
-    { title: 'La période', text: 'Aujourd’hui, 7 jours, 30 jours ou tout : tous les chiffres suivent la période choisie.', sel: '[data-period-switch]' },
-    { title: 'Vos chiffres', text: 'Ventes, transactions, dépenses et caisse attendue : l’essentiel en un coup d’œil.', sel: '.stats-grid' }
+    { title: t('app_tour_welcome_t', 'Bienvenue sur SamaCaisse'), text: t('app_tour_welcome_x', 'Voici un tour rapide : en une minute, vous saurez où tout se trouve.'), sel: null },
+    { title: t('app_tour_menu_t', 'Le menu'), text: t('app_tour_menu_x', 'Touchez ici pour ouvrir le menu : ventes, caisses, dépenses, produits, personnel et rapports.'), sel: '#mobile-menu' },
+    { title: t('app_tour_store_t', 'Vos boutiques'), text: t('app_tour_store_x', 'Choisissez une boutique ou « Toutes les boutiques » : tout le tableau de bord suit ce choix.'), sel: '#store-selector-custom' },
+    { title: t('app_tour_sale_t', 'Nouvelle vente'), text: t('app_tour_sale_x', 'Le bouton le plus important : enregistrez une vente en renseignant juste le montant.'), sel: '[data-action="new-sale"]' },
+    { title: t('app_tour_period_t', 'La période'), text: t('app_tour_period_x', 'Aujourd’hui, 7 jours, 30 jours ou tout : tous les chiffres suivent la période choisie.'), sel: '[data-period-switch]' },
+    { title: t('app_tour_kpi_t', 'Vos chiffres'), text: t('app_tour_kpi_x', 'Ventes, transactions, dépenses et caisse attendue : l’essentiel en un coup d’œil.'), sel: '.stats-grid' }
   ];
   let tourIndex = -1;
   let tourSteps = TOUR_STEPS;
@@ -995,7 +1003,7 @@
     highlight.className = 'tour-highlight';
     const tip = document.createElement('div');
     tip.className = 'tour-tip';
-    tip.innerHTML = `<span class="tour-count">${index + 1} / ${tourSteps.length}</span><h3>${escapeHtml(step.title)}</h3><p>${escapeHtml(step.text)}</p><div class="tour-tip-actions"><button type="button" class="btn btn-light" data-tour="skip">Passer</button><button type="button" class="btn btn-primary" data-tour="next">${last ? 'Terminer' : 'Suivant'}</button></div>`;
+    tip.innerHTML = `<span class="tour-count">${index + 1} / ${tourSteps.length}</span><h3>${escapeHtml(step.title)}</h3><p>${escapeHtml(step.text)}</p><div class="tour-tip-actions"><button type="button" class="btn btn-light" data-tour="skip">${t('app_tour_skip', 'Passer')}</button><button type="button" class="btn btn-primary" data-tour="next">${last ? t('app_tour_done', 'Terminer') : t('app_tour_next', 'Suivant')}</button></div>`;
     document.body.append(scrim, highlight, tip);
     tip.querySelector('[data-tour="skip"]').onclick = () => { tourDone(); tourCleanup(); };
     tip.querySelector('[data-tour="next"]').onclick = () => {

@@ -83,8 +83,8 @@
   const syncProfile = () => {
     const profile = window.solmaCompteSession?.compte || window.solmaPersonnelSession?.personnel;
     if (!profile) return;
-    const name = profile.nom || profile.email || 'Compte propriétaire';
-    const roleLabel = profile.role === 'vendeur' ? 'Vendeur' : 'Propriétaire';
+    const name = profile.nom || profile.email || t('app_profile_owner', 'Compte propriétaire');
+    const roleLabel = profile.role === 'vendeur' ? t('app_role_seller', 'Vendeur') : t('app_role_owner', 'Propriétaire');
     const storeLabel = window.solmaPersonnelSession?.personnel?.magasin_nom;
     document.getElementById('profile-name').textContent = name;
     document.getElementById('profile-role').textContent = storeLabel ? `${roleLabel} · ${storeLabel}` : roleLabel;
@@ -102,14 +102,14 @@
       return;
     }
     window.solmaCompteData = payload;
+    syncProfile();
     if (!payload.entreprises?.length) showOnboarding(payload.compte);
     else showAppShell();
   };
 
-  const defaultButtonText = () => (authMode === 'personnel' ? 'Ouvrir ma session' : registerMode ? 'Créer mon espace' : 'Se connecter');
+  const t = (key, fallback) => window.SamaCaisseI18n ? window.SamaCaisseI18n.t(key) : fallback;
 
-  const loginHint = document.getElementById('login-hint');
-  const syncHint = () => { if (loginHint) loginHint.classList.toggle('hidden', registerMode || authMode !== 'compte'); };
+  const defaultButtonText = () => (authMode === 'personnel' ? t('auth_open_session', 'Ouvrir ma session') : registerMode ? t('auth_create_button', 'Créer mon espace') : t('auth_login_button', 'Se connecter'));
 
   authTabs.forEach(button => button.addEventListener('click', () => {
     authMode = button.dataset.authMode;
@@ -126,23 +126,26 @@
       document.getElementById(id).toggleAttribute('required', authMode === 'compte');
     });
     loginButton.textContent = defaultButtonText();
-    syncHint();
   }));
+
+  const refreshAuthTexts = () => {
+    loginTitle.textContent = registerMode ? t('auth_create_title', 'Créez votre espace.') : t('auth_welcome_title', 'Bienvenue dans votre espace.');
+    loginIntro.textContent = registerMode
+      ? t('auth_create_intro', 'Renseignez vos informations pour commencer.')
+      : t('auth_welcome_intro', 'Connectez-vous pour gérer vos boutiques.');
+    toggleLink.textContent = registerMode ? t('auth_already_account', "J'ai déjà un compte") : t('auth_create_button', 'Créer mon espace');
+    loginButton.textContent = defaultButtonText();
+  };
+  window.addEventListener('samacaisse-lang-changed', refreshAuthTexts);
 
   toggleLink.addEventListener('click', event => {
     event.preventDefault();
     registerMode = !registerMode;
     if (registerMode) document.getElementById('form-debut').value = String(Date.now());
     document.querySelectorAll('.register-field').forEach(item => item.classList.toggle('hidden-field', !registerMode));
-    loginTitle.textContent = registerMode ? 'Créez votre espace.' : 'Bienvenue dans votre espace.';
-    loginIntro.textContent = registerMode
-      ? 'Renseignez vos informations pour commencer.'
-      : 'Connectez-vous pour gérer vos boutiques.';
-    toggleLink.textContent = registerMode ? "J'ai déjà un compte" : 'Créer mon espace';
+    refreshAuthTexts();
     error.textContent = '';
     form.reset();
-    loginButton.textContent = defaultButtonText();
-    syncHint();
   });
 
   form.addEventListener('submit', async event => {
