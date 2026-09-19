@@ -94,6 +94,7 @@
     state.loading = false;
     syncEnterpriseBadge();
     render();
+    maybeStartTour();
   }
 
   const pageTitle = () => ({ dashboard: 'Tableau de bord', sales: 'Ventes', cash: 'Caisses', expenses: 'Dépenses', products: 'Produits', team: 'Personnel', reports: 'Rapports' }[state.currentView] || 'Tableau de bord');
@@ -717,7 +718,18 @@
     document.querySelectorAll('[data-view-link]').forEach(button => button.onclick = () => { state.currentView = button.dataset.viewLink; render(); });
     document.querySelectorAll('[data-search]').forEach(input => {
       input.value = state.search[input.dataset.search] || '';
-      input.oninput = () => { state.search[input.dataset.search] = input.value; render(); };
+      input.oninput = () => {
+        const key = input.dataset.search;
+        const start = input.selectionStart;
+        const end = input.selectionEnd;
+        state.search[key] = input.value;
+        render();
+        const fresh = document.querySelector(`[data-search="${key}"]`);
+        if (fresh) {
+          fresh.focus({ preventScroll: true });
+          try { fresh.setSelectionRange(start, end); } catch {}
+        }
+      };
     });
     document.querySelectorAll('[data-period]').forEach(button => button.onclick = () => { state.period = button.dataset.period; render(); });
     document.querySelectorAll('[data-action]').forEach(button => button.onclick = () => {
@@ -735,6 +747,7 @@
       if (action === 'export-csv-cash') exportCashCsv();
       if (action === 'print-report') openPrintReport();
       if (action === 'edit-profile') openModal('settings');
+      if (action === 'start-tour') startTour();
     });
     document.querySelectorAll('[data-cancel-sale]').forEach(button => button.onclick = () => cancelSale(button.dataset.cancelSale));
     document.querySelectorAll('[data-cancel-expense]').forEach(button => button.onclick = () => cancelExpense(button.dataset.cancelExpense));
@@ -912,5 +925,107 @@
 
   if (window.solmaPersonnelSession?.token) {
     init();
+  }
+
+  /* ==========================================================================
+     VISITE GUIDÉE — obligatoire à la première session, relançable à tout moment
+     ========================================================================== */
+  const TOUR_KEY = 'samacaisse_tour_v1';
+  const TOUR_STEPS = [
+    { title: 'Bienvenue sur SamaCaisse', text: 'Voici un tour rapide : en une minute, vous saurez où tout se trouve.', sel: null },
+    { title: 'Le menu', text: 'Touchez ici pour ouvrir le menu : ventes, caisses, dépenses, produits, personnel et rapports.', sel: '#mobile-menu' },
+    { title: 'Vos boutiques', text: 'Choisissez une boutique ou « Toutes les boutiques » : tout le tableau de bord suit ce choix.', sel: '#store-selector-custom' },
+    { title: 'Nouvelle vente', text: 'Le bouton le plus important : enregistrez une vente en renseignant juste le montant.', sel: '[data-action="new-sale"]' },
+    { title: 'La période', text: 'Aujourd’hui, 7 jours, 30 jours ou tout : tous les chiffres suivent la période choisie.', sel: '[data-period-switch]' },
+    { title: 'Vos chiffres', text: 'Ventes, transactions, dépenses et caisse attendue : l’essentiel en un coup d’œil.', sel: '.stats-grid' }
+  ];
+  let tourIndex = -1;
+  let tourSteps = TOUR_STEPS;
+  let tourRepositionBound = false;
+
+  const tourDone = () => { try { localStorage.setItem(TOUR_KEY, '1'); } catch {} };
+  const tourCleanup = () => {
+    document.querySelectorAll('.tour-scrim, .tour-highlight, .tour-tip').forEach(el => el.remove());
+    tourIndex = -1;
+  };
+  const tourPosition = () => {
+    if (tourIndex < 0) return;
+    const step = tourSteps[tourIndex];
+    const highlight = document.querySelector('.tour-highlight');
+    const tip = document.querySelector('.tour-tip');
+    if (!highlight || !tip) return;
+    const target = step.sel ? document.querySelector(step.sel) : null;
+    if (target) {
+      const rect = target.getBoundingClientRect();
+      const pad = 6;
+      highlight.style.display = 'block';
+      highlight.style.top = Math.max(8, rect.top - pad) + 'px';
+      highlight.style.left = Math.max(8, rect.left - pad) + 'px';
+      highlight.style.width = (rect.width + pad * 2) + 'px';
+      highlight.style.height = (rect.height + pad * 2) + 'px';
+      const below = window.innerHeight - rect.bottom;
+      tip.style.top = '';
+      tip.style.bottom = '';
+      tip.style.transform = '';
+      if (below >= 190) tip.style.top = (rect.bottom + 12) + 'px';
+      else tip.style.bottom = '16px';
+      tip.style.left = Math.max(16, Math.min(window.innerWidth - 336, rect.left)) + 'px';
+    } else {
+      highlight.style.display = 'none';
+      tip.style.top = '50%';
+      tip.style.bottom = '';
+      tip.style.left = '50%';
+      tip.style.transform = 'translate(-50%, -50%)';
+    }
+  };
+  const tourShow = index => {
+    tourIndex = index;
+    tourCleanupSilent();
+    const step = tourSteps[index];
+    const last = index === tourSteps.length - 1;
+    const scrim = document.createElement('div');
+    scrim.className = 'tour-scrim';
+    scrim.onclick = () => { tourDone(); tourCleanup(); };
+    const highlight = document.createElement('div');
+    highlight.className = 'tour-highlight';
+    const tip = document.createElement('div');
+    tip.className = 'tour-tip';
+    tip.innerHTML = `<span class="tour-count">${index + 1} / ${tourSteps.length}</span><h3>${escapeHtml(step.title)}</h3><p>${escapeHtml(step.text)}</p><div class="tour-tip-actions"><button type="button" class="btn btn-light" data-tour="skip">Passer</button><button type="button" class="btn btn-primary" data-tour="next">${last ? 'Terminer' : 'Suivant'}</button></div>`;
+    document.body.append(scrim, highlight, tip);
+    tip.querySelector('[data-tour="skip"]').onclick = () => { tourDone(); tourCleanup(); };
+    tip.querySelector('[data-tour="next"]').onclick = () => {
+      if (last) { tourDone(); tourCleanup(); return; }
+      tourShow(index + 1);
+    };
+    if (!tourRepositionBound) {
+      tourRepositionBound = true;
+      window.addEventListener('resize', tourPosition);
+    }
+    const target = step.sel ? document.querySelector(step.sel) : null;
+    if (target) {
+      target.scrollIntoView({ block: 'center' });
+      setTimeout(tourPosition, 350);
+    }
+    tourPosition();
+  };
+  const tourCleanupSilent = () => {
+    document.querySelectorAll('.tour-scrim, .tour-highlight, .tour-tip').forEach(el => el.remove());
+  };
+  function startTour() {
+    if (state.currentView !== 'dashboard') { state.currentView = 'dashboard'; render(); }
+    tourSteps = TOUR_STEPS.filter(step => {
+      if (!step.sel) return true;
+      const el = document.querySelector(step.sel);
+      return el && el.offsetParent !== null;
+    });
+    if (!tourSteps.length) return;
+    setTimeout(() => tourShow(0), 300);
+  }
+  function maybeStartTour() {
+    let seen = null;
+    try { seen = localStorage.getItem(TOUR_KEY); } catch {}
+    if (seen) return;
+    if (!window.matchMedia('(max-width: 720px)').matches) return;
+    startTour();
   }
 })();

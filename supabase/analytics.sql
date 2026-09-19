@@ -5,7 +5,7 @@
 -- Table verrouillée (RLS sans policy) : seul service_role écrit via /api/analytics.
 -- ============================================================================
 
-create table public.visites (
+create table if not exists public.visites (
   jour date not null,
   page text not null,
   compteur integer not null default 1,

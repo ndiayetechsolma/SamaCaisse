@@ -25,3 +25,7 @@ Thumbs.db
 
 # Sauvegardes locales (doublons de travail — jamais poussés sur GitHub)
 _sauvegardes/
+
+# Skills agents locaux (outillage personnel)
+.agents/
+skills-lock.json

@@ -10,7 +10,8 @@
   const loginIntro = document.getElementById('login-intro');
   const authTabs = document.querySelectorAll('[data-auth-mode]');
 
-  // Étirement élastique du fond fixe quand on tire au-delà des limites de défilement
+  // Étirement élastique du fond fixe (molette sur PC uniquement : au tactile,
+  // repeindre le grand calque image à chaque mouvement saccade).
   const bindBgStretch = scroller => {
     if (!scroller || scroller.dataset.stretchBound) return;
     scroller.dataset.stretchBound = '1';
@@ -24,18 +25,12 @@
     };
     const atTop = () => scroller.scrollTop <= 0;
     const atBottom = () => scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 1;
-    scroller.addEventListener('wheel', event => {
-      if (event.deltaY < 0 && atTop()) pull('bg-pull-down');
-      else if (event.deltaY > 0 && atBottom()) pull('bg-pull-up');
-    }, { passive: true });
-    let touchY = null;
-    scroller.addEventListener('touchstart', event => { touchY = event.touches[0].clientY; }, { passive: true });
-    scroller.addEventListener('touchmove', event => {
-      if (touchY === null) return;
-      const delta = event.touches[0].clientY - touchY;
-      if (delta > 0 && atTop()) pull('bg-pull-down');
-      else if (delta < 0 && atBottom()) pull('bg-pull-up');
-    }, { passive: true });
+    if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+      scroller.addEventListener('wheel', event => {
+        if (event.deltaY < 0 && atTop()) pull('bg-pull-down');
+        else if (event.deltaY > 0 && atBottom()) pull('bg-pull-up');
+      }, { passive: true });
+    }
   };
   bindBgStretch(authScreen);
   bindBgStretch(onboardingScreen);
