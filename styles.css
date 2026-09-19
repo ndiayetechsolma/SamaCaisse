@@ -1322,3 +1322,62 @@ background: linear-gradient(145deg, rgb(50 209 155 / 72%), rgba(255, 255, 255, .
 .tour-tip p { margin: 0 0 14px; color: #2c3a34; font-size: 12.5px; line-height: 1.6; }
 .tour-tip-actions { display: flex; gap: 8px; }
 .tour-tip-actions .btn { flex: 1; min-height: 38px; }
+
+/* ============================================================================
+   PERF MOBILE — le flou en verre coûte trop cher aux GPU de téléphone :
+   fonds translucides sans flou (mêmes dégradés, même identité).
+   Desktop strictement inchangé.
+   ============================================================================ */
+@media (max-width: 720px) {
+  .sidebar,
+  .sidebar.liquid-glass {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: linear-gradient(160deg, rgba(255,255,255,.95), rgba(255,255,255,.87));
+  }
+  .topbar,
+  .topbar.liquid-glass {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: linear-gradient(145deg, rgba(255,255,255,.95), rgba(255,255,255,.87));
+  }
+  .glass-card,
+  .glass-card.liquid-glass {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: linear-gradient(145deg, rgba(255,255,255,.84), rgba(255,255,255,.64));
+  }
+  .store-selector,
+  .store-selector.liquid-glass,
+  .store-selector-menu,
+  .filter-input,
+  .filter-input.liquid-glass {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: rgba(255,255,255,.9);
+  }
+  .auth-screen {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: linear-gradient(180deg, rgba(226,240,231,.97), rgba(207,233,216,.97));
+  }
+  .modal-backdrop {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .cookie-banner {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: rgba(255,255,255,.97);
+  }
+  .tour-tip {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: rgba(255,255,255,.97);
+  }
+
+  /* Animations décoratives coupées : apparition immédiate */
+  .stats-grid .stat-card {
+    animation: none;
+  }
+}

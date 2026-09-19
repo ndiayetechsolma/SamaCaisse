@@ -722,13 +722,17 @@
         const key = input.dataset.search;
         const start = input.selectionStart;
         const end = input.selectionEnd;
-        state.search[key] = input.value;
-        render();
-        const fresh = document.querySelector(`[data-search="${key}"]`);
-        if (fresh) {
-          fresh.focus({ preventScroll: true });
-          try { fresh.setSelectionRange(start, end); } catch {}
-        }
+        const value = input.value;
+        clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(() => {
+          state.search[key] = value;
+          render();
+          const fresh = document.querySelector(`[data-search="${key}"]`);
+          if (fresh) {
+            fresh.focus({ preventScroll: true });
+            try { fresh.setSelectionRange(start, end); } catch {}
+          }
+        }, 150);
       };
     });
     document.querySelectorAll('[data-period]').forEach(button => button.onclick = () => { state.period = button.dataset.period; render(); });
@@ -942,6 +946,7 @@
   let tourIndex = -1;
   let tourSteps = TOUR_STEPS;
   let tourRepositionBound = false;
+  let searchDebounce = null;
 
   const tourDone = () => { try { localStorage.setItem(TOUR_KEY, '1'); } catch {} };
   const tourCleanup = () => {
