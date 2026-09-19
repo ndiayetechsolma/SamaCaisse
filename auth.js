@@ -50,7 +50,11 @@
   let authMode = 'compte';
   let registerMode = false;
 
+  const authLoading = document.getElementById('auth-loading');
+  const setLoading = on => { if (authLoading) authLoading.classList.toggle('hidden', !on); };
+
   const showScreen = id => {
+    setLoading(false);
     [authScreen, onboardingScreen].forEach(screen => screen.classList.toggle('hidden', screen.id !== id));
     appShell.classList.add('locked');
     document.body.classList.remove('seller-mode');
@@ -68,6 +72,7 @@
   };
 
   const showAppShell = () => {
+    setLoading(false);
     onboardingScreen.classList.add('hidden');
     authScreen.classList.add('hidden');
     appShell.classList.remove('locked');
@@ -273,6 +278,7 @@
     const account = readStoredAccount();
     if (account?.token) {
       window.solmaCompteSession = account;
+      setLoading(true);
       await routeAfterCompteLogin(account.token);
       return;
     }

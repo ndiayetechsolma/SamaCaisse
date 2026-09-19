@@ -802,7 +802,6 @@ background: linear-gradient(145deg, rgb(50 209 155 / 72%), rgba(255, 255, 255, .
     overflow:hidden;
     text-overflow:ellipsis;
     white-space:nowrap;
-    max-width:90px;
   }
 
   .mobile-menu{
@@ -825,11 +824,14 @@ background: linear-gradient(145deg, rgb(50 209 155 / 72%), rgba(255, 255, 255, .
 }
 @media (max-width: 420px) { .notification { display: none; }.store-selector { max-width: 135px; }.store-selector select { max-width: 98px; } }
 @media (max-width: 420px) {
-  .topbar { padding: 0 10px; }
-  .topbar-actions, .header-navigation { gap: 6px; }
-  .enterprise-badge { max-width: 84px; font-size: 10px; }
-  .store-selector { max-width: 110px; }
-  #store-selector-label { max-width: 60px; }
+  .topbar { padding: 0 8px; }
+  .topbar-actions, .header-navigation { gap: 4px; }
+  .mobile-menu { width: 28px; height: 28px; }
+  .mobile-menu svg { width: 16px; height: 16px; }
+  .enterprise-badge { max-width: 64px; font-size: 10px; min-height: 28px; }
+  .store-selector { max-width: none; flex: 1 1 auto; }
+  #store-selector-label { max-width: none; font-size: 10.5px; }
+  .store-selector-caret { font-size: 7px; }
   .form-grid { grid-template-columns: 1fr; }
   .auth-card { padding: 24px 20px; }
   .auth-brand { padding-bottom: 24px; }
@@ -964,6 +966,28 @@ background: linear-gradient(145deg, rgb(50 209 155 / 72%), rgba(255, 255, 255, .
   text-align: center;
 }
 .auth-hint strong { font-weight: 700; }
+
+/* Voile de chargement : évite le flash de l'écran de connexion au rechargement */
+.auth-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(180deg, rgba(226,240,231,.97), rgba(207,233,216,.97));
+}
+.auth-loading.hidden { display: none; }
+.auth-loading-inner { display: grid; gap: 14px; justify-items: center; }
+.auth-loading-spinner {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 3px solid rgba(18,66,56,.2);
+  border-top-color: var(--teal);
+  animation: authSpin .8s linear infinite;
+}
+@keyframes authSpin { to { transform: rotate(360deg); } }
+.auth-loading p { margin: 0; color: var(--teal-dark); font-size: 12px; font-weight: 600; }
 
 .owner-summary {
   margin: 18px 0;
@@ -1286,6 +1310,9 @@ background: linear-gradient(145deg, rgb(50 209 155 / 72%), rgba(255, 255, 255, .
   body::before {
     transition: none;
   }
+  .auth-loading-spinner {
+    animation: none;
+  }
 }
 
 /* ============================================================================
@@ -1339,7 +1366,9 @@ background: linear-gradient(145deg, rgb(50 209 155 / 72%), rgba(255, 255, 255, .
   .topbar.liquid-glass {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
-    background: linear-gradient(145deg, rgba(255,255,255,.95), rgba(255,255,255,.87));
+    background: linear-gradient(145deg, rgba(205,234,223,.96), rgba(255,255,255,.90));
+    border: 1px solid rgba(18,66,56,.22);
+    box-shadow: 0 10px 28px -12px rgba(18,66,56,.35), inset 0 1px 0 rgba(255,255,255,.9);
   }
   .glass-card,
   .glass-card.liquid-glass {
