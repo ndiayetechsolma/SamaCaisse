@@ -28,7 +28,8 @@
     error: '',
     currentView: 'dashboard',
     search: { produits: '', ventes: '', depenses: '' },
-    period: 'all'
+    filters: { salesSeller: 'all', salesPayment: 'all', expSeller: 'all' },
+    period: 'today'
   };
 
   function syncAuthState() {
@@ -123,7 +124,7 @@
     const lastPoint = points[points.length - 1];
     const shortMoney = v => v >= 1000 ? `${Math.round(v / 1000)}k` : `${Math.round(v)}`;
     const yTicks = [30, 87, 144].map(y => ({ y, value: maxValue * (1 - (y - topY) / (bottomY - topY)) }));
-    return `<svg class="chart" viewBox="0 0 700 220" preserveAspectRatio="none"><defs><linearGradient id="area" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#80bca0" stop-opacity=".30"/><stop offset="1" stop-color="#80bca0" stop-opacity="0"/></linearGradient></defs><line class="chart-grid" x1="0" y1="30" x2="700" y2="30"/><line class="chart-grid" x1="0" y1="87" x2="700" y2="87"/><line class="chart-grid" x1="0" y1="144" x2="700" y2="144"/><path class="chart-area" d="${areaPath}"/><path class="chart-line" d="${linePath}"/><circle class="chart-dot" cx="${lastPoint.x.toFixed(1)}" cy="${lastPoint.y.toFixed(1)}" r="5"/>${points.map(point => `<text class="axis-label" x="${point.x.toFixed(1)}" y="216">${point.label}</text>`).join('')}${yTicks.map(tick => `<text class="axis-label" x="696" y="${(tick.y - 5).toFixed(1)}" text-anchor="end">${shortMoney(tick.value)}</text>`).join('')}</svg>`;
+    return `<svg class="chart" viewBox="0 0 700 220" preserveAspectRatio="none"><defs><linearGradient id="area" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#80bca0" stop-opacity=".30"/><stop offset="1" stop-color="#80bca0" stop-opacity="0"/></linearGradient></defs><line class="chart-grid" x1="0" y1="30" x2="700" y2="30"/><line class="chart-grid" x1="0" y1="87" x2="700" y2="87"/><line class="chart-grid" x1="0" y1="144" x2="700" y2="144"/><path class="chart-area" d="${areaPath}"/><path class="chart-line" d="${linePath}"/><circle class="chart-dot" cx="${lastPoint.x.toFixed(1)}" cy="${lastPoint.y.toFixed(1)}" r="5"/>${points.map((point, index) => `<text class="axis-label" x="${point.x.toFixed(1)}" y="216" text-anchor="${index === 0 ? 'start' : index === points.length - 1 ? 'end' : 'middle'}">${point.label}</text>`).join('')}${yTicks.map(tick => `<text class="axis-label" x="696" y="${(tick.y - 5).toFixed(1)}" text-anchor="end">${shortMoney(tick.value)}</text>`).join('')}</svg>`;
   }
 
   function cashExpectation(caisse) {
@@ -241,10 +242,10 @@
     if (state.error) return `<div class="empty-state glass-card"><strong>${t('app_dash_error', 'Impossible de charger vos données.')}</strong><span>${escapeHtml(state.error)}</span><button class="btn btn-primary" data-action="retry">${t('app_retry', 'Réessayer')}</button></div>`;
     const range = periodRange();
     const sales = filtered(state.ventes).filter(sale => !sale.annulee && inPeriod(sale.date_heure));
-    const todaySales = sales.filter(sale => isToday(sale.date_heure));
-    const todayExpenses = filtered(state.depenses).filter(depense => !depense.annulee && isToday(depense.date_heure) && inPeriod(depense.date_heure));
+    const periodExpenses = filtered(state.depenses).filter(depense => !depense.annulee && inPeriod(depense.date_heure));
     const totalSales = sales.reduce((sum, sale) => sum + sale.montant, 0);
-    const totalExpenses = todayExpenses.reduce((sum, depense) => sum + depense.montant, 0);
+    const totalExpenses = periodExpenses.reduce((sum, depense) => sum + depense.montant, 0);
+    const chartSales = filtered(state.ventes).filter(sale => !sale.annulee);
     const openCash = filtered(state.caisses).filter(item => !item.date_fermeture);
     const cashTotal = openCash.reduce((sum, item) => sum + cashExpectation(item), 0);
     const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
@@ -264,15 +265,16 @@
       return items;
     }, []);
     const latestSales = personnelOwnSales(filtered(state.ventes)).slice(0, 5);
+    const isTodayPeriod = state.period === 'today';
     return `<div class="page-heading"><div><p class="eyebrow">${todayLabel.charAt(0).toUpperCase() + todayLabel.slice(1)}</p><h1>${t('app_hello', 'Bonjour')} ${escapeHtml(sellerName)}</h1><p class="subtle">${t('app_dash_happening', 'Voici ce qui se passe aujourd’hui')}${periodLabel}.</p></div>${state.isPersonnel ? '' : `<div class="page-heading-actions">${periodSelector()}<button class="btn btn-primary" data-action="new-sale">${icon('plus', 14)} ${t('common_new_sale', 'Nouvelle vente')}</button></div>`}</div>
     <section class="stats-grid">
-      <article class="glass-card stat-card"><div class="stat-top"><span>${state.period === 'today' ? t('app_dash_sales_day', 'Ventes du jour') : t('app_dash_sales_period', 'Ventes de la période')}</span><span class="stat-symbol">${icon('trendingUp')}</span></div><h2>${money(totalSales)}</h2><div class="stat-foot ${yesterdayTotal > 0 ? '' : 'neutral'}"><b>${trend}</b> ${t('app_dash_vs_yesterday', 'vs. hier')}</div></article>
-      <article class="glass-card stat-card"><div class="stat-top"><span>${t('app_dash_transactions', 'Transactions')}</span><span class="stat-symbol">${icon('activity')}</span></div><h2>${todaySales.length}</h2><div class="stat-foot neutral">${t('app_dash_trans_today', 'Ventes enregistrées aujourd’hui')}</div></article>
-      <article class="glass-card stat-card"><div class="stat-top"><span>${t('app_dash_expenses', 'Dépenses du jour')}</span><span class="stat-symbol">${icon('trendingDown')}</span></div><h2>${money(totalExpenses)}</h2><div class="stat-foot neutral">${todayExpenses.length} ${t('app_dash_expense_unit', 'dépense')}${todayExpenses.length > 1 ? 's' : ''} ${t('app_dash_today_word', 'aujourd’hui')}</div></article>
+      <article class="glass-card stat-card"><div class="stat-top"><span>${isTodayPeriod ? t('app_dash_sales_day', 'Ventes du jour') : t('app_dash_sales_period', 'Ventes de la période')}</span><span class="stat-symbol">${icon('trendingUp')}</span></div><h2>${money(totalSales)}</h2><div class="stat-foot ${yesterdayTotal > 0 ? '' : 'neutral'}"><b>${trend}</b> ${t('app_dash_vs_yesterday', 'vs. hier')}</div></article>
+      <article class="glass-card stat-card"><div class="stat-top"><span>${t('app_dash_transactions', 'Transactions')}</span><span class="stat-symbol">${icon('activity')}</span></div><h2>${sales.length}</h2><div class="stat-foot neutral">${isTodayPeriod ? t('app_dash_trans_today', 'Ventes enregistrées aujourd’hui') : t('app_dash_trans_period', 'Ventes enregistrées sur la période')}</div></article>
+      <article class="glass-card stat-card"><div class="stat-top"><span>${isTodayPeriod ? t('app_dash_expenses', 'Dépenses du jour') : t('app_dash_expenses_period', 'Dépenses de la période')}</span><span class="stat-symbol">${icon('trendingDown')}</span></div><h2>${money(totalExpenses)}</h2><div class="stat-foot neutral">${periodExpenses.length} ${t('app_dash_expense_unit', 'dépense')}${periodExpenses.length > 1 ? 's' : ''} ${isTodayPeriod ? t('app_dash_today_word', 'aujourd’hui') : t('app_dash_on_period', 'sur la période')}</div></article>
       <article class="glass-card stat-card"><div class="stat-top"><span>${t('app_dash_cash', 'Caisse attendue')}</span><span class="stat-symbol">${icon('wallet')}</span></div><h2>${money(cashTotal)}</h2><div class="stat-foot ${openCash.length ? '' : 'neutral'}">${openCash.length ? t('app_dash_cash_open', 'Caisse ouverte') : t('app_dash_cash_none', 'Caisse non ouverte')}</div></article>
     </section>
     <section class="content-grid">
-      <article class="glass-card panel"><div class="panel-header"><div><h3>${t('app_dash_perf', 'Performance des ventes')}</h3><p>${t('app_dash_perf_sub', 'Chiffre d’affaires des 7 derniers jours')}</p></div><button class="text-link" data-view-link="reports">${t('app_dash_see_report', 'Voir le rapport ↗')}</button></div><div class="chart-wrap">${buildTrendSvg(sales)}</div><div class="legend"><span><i></i> ${t('app_chart_total', 'Total des ventes')}</span></div></article>
+      <article class="glass-card panel"><div class="panel-header"><div><h3>${t('app_dash_perf', 'Performance des ventes')}</h3><p>${t('app_dash_perf_sub', 'Chiffre d’affaires des 7 derniers jours')}</p></div><button class="text-link" data-view-link="reports">${t('app_dash_see_report', 'Voir le rapport ↗')}</button></div><div class="chart-wrap">${buildTrendSvg(chartSales)}</div><div class="legend"><span><i></i> ${t('app_chart_total', 'Total des ventes')}</span></div></article>
       <article class="glass-card panel"><div class="panel-header"><div><h3>${t('app_dash_cash_state', 'État des caisses')}</h3><p>${t('app_dash_cash_sub', 'Suivi en temps réel')}</p></div><button class="text-link" data-view-link="cash">${t('app_dash_see_all', 'Tout voir')}</button></div><div class="cash-list">${cashCards.length ? cashCards.map(cash => `<div class="cash-item"><div class="store-icon">${icon('store', 18)}</div><div class="cash-info"><strong>${escapeHtml(cash.name)}</strong><span>${cash.open ? (cash.openedAt ? t('app_dash_opened_at', 'Ouverte à ') + cash.openedAt.split(', ')[1] : t('app_dash_open', 'Ouverte')) : t('app_dash_closed', 'Fermée')}</span></div><div class="cash-amount"><strong>${money(cash.expected)}</strong><span class="${cash.open ? '' : 'closed'}">${cash.open ? t('app_dash_ongoing', 'En cours') : t('app_dash_closed', 'Fermée')}</span></div><div class="cash-progress"><i class="${cash.open ? '' : 'closed'}"></i></div></div>`).join('') : '<div class="empty-state"><strong>' + t('app_dash_no_cash', 'Aucune caisse') + '</strong><span>' + t('app_dash_no_cash_sub', 'Ouvrez une caisse pour commencer le suivi.') + '</span></div>'}</div></article>
     </section>
     <section class="glass-card panel activity-panel"><div class="panel-header"><div><h3>${t('app_dash_latest', 'Dernières transactions')}</h3><p>${t('app_dash_latest_sub', 'Les ventes les plus récentes')}</p></div><button class="text-link" data-view-link="sales">${t('app_dash_all_sales', 'Voir toutes les ventes ↗')}</button></div>${salesTable(latestSales)}</section>`;
@@ -306,9 +308,22 @@
     return items.filter(sale => sale.personnel_id === pid);
   };
 
+  const sellerOptions = (current) => {
+    const opts = [`<option value="all">${escapeHtml(t('app_filter_all_sellers', 'Tous les vendeurs'))}</option>`, `<option value="owner"${current === 'owner' ? ' selected' : ''}>${escapeHtml(t('app_owner', 'Propriétaire'))}</option>`];
+    state.personnel.forEach(member => opts.push(`<option value="${member.id}"${current === member.id ? ' selected' : ''}>${escapeHtml(member.nom)}</option>`));
+    return opts.join('');
+  };
+  const paymentOptions = (current) => [`<option value="all">${escapeHtml(t('app_filter_all_payments', 'Tous les paiements'))}</option>`, `<option value="liquide"${current === 'liquide' ? ' selected' : ''}>${escapeHtml(t('app_pay_cash', 'Liquide'))}</option>`, `<option value="mobile_money"${current === 'mobile_money' ? ' selected' : ''}>${escapeHtml(t('app_pay_mobile', 'Mobile money'))}</option>`].join('');
+  const matchSeller = (item, filter) => {
+    if (filter === 'all') return true;
+    if (filter === 'owner') return !item.personnel_id;
+    return item.personnel_id === filter;
+  };
+  const matchPayment = (item, filter) => filter === 'all' || item.mode_paiement === filter;
+
   function salesTableView() {
-    const visible = personnelOwnSales(filtered(state.ventes).filter(sale => matchesSearch(sale.nom_produit, 'ventes')));
-    return `<section class="glass-card view-card"><div class="filters">${searchInput('ventes', t('app_search_product', 'Rechercher un produit…'))}<span class="muted">${visible.length} ${t('app_unit_sale', 'vente')}${visible.length > 1 ? 's' : ''}${state.store !== 'all' ? ' · ' + escapeHtml(scopeLabel()) : ''}</span><button class="btn btn-light" data-action="export-csv-sales">${t('app_export_csv', 'Exporter CSV ↗')}</button></div>${salesTable(visible)}</section>`;
+    const visible = personnelOwnSales(filtered(state.ventes).filter(sale => matchesSearch(sale.nom_produit, 'ventes')).filter(sale => matchSeller(sale, state.filters.salesSeller)).filter(sale => matchPayment(sale, state.filters.salesPayment)));
+    return `<section class="glass-card view-card"><div class="filters">${searchInput('ventes', t('app_search_product', 'Rechercher un produit…'))}${state.isPersonnel ? '' : `<select class="filter-input" data-filter="salesSeller" aria-label="${escapeHtml(t('app_filter_all_sellers', 'Tous les vendeurs'))}">${sellerOptions(state.filters.salesSeller)}</select>`}<select class="filter-input" data-filter="salesPayment" aria-label="${escapeHtml(t('app_filter_all_payments', 'Tous les paiements'))}">${paymentOptions(state.filters.salesPayment)}</select><span class="muted">${visible.length} ${t('app_unit_sale', 'vente')}${visible.length > 1 ? 's' : ''}${state.store !== 'all' ? ' · ' + escapeHtml(scopeLabel()) : ''}</span><button class="btn btn-light" data-action="export-csv-sales">${t('app_export_csv', 'Exporter CSV ↗')}</button></div>${salesTable(visible)}</section>`;
   }
 
   function salesView() {
@@ -317,10 +332,10 @@
   }
 
   function expensesView() {
-    const visibleExpenses = filtered(state.depenses).filter(depense => matchesSearch(depense.motif, 'depenses'));
+    const visibleExpenses = filtered(state.depenses).filter(depense => matchesSearch(depense.motif, 'depenses')).filter(depense => matchSeller(depense, state.filters.expSeller));
     const rows = visibleExpenses.map(depense => `<tr class="${depense.annulee ? 'cancelled-row' : ''}"><td><strong>${escapeHtml(depense.motif)}</strong></td><td>${escapeHtml(depense.personnel?.nom || depense.admin_nom || t('app_owner', 'Propriétaire'))}</td><td class="muted">${escapeHtml(depense.magasins?.nom || '—')}</td><td class="negative"><strong>− ${money(depense.montant)}</strong></td><td class="muted">${escapeHtml(toTime(depense.date_heure))}${depense.annulee ? ' · ' + t('app_cancelled', 'Annulée') : ''}</td>${state.isPersonnel ? '' : `<td>${depense.annulee ? '<span class="muted">' + t('app_cancelled', 'Annulée') + '</span>' : `<button class="text-link danger-link" data-cancel-expense="${depense.id}">${t('app_cancel', 'Annuler')}</button>`}</td>`}</tr>`).join('');
     return genericHeader(t('app_view_exp_title', 'Dépenses'), t('app_view_exp_sub', 'Gardez une trace claire des sorties.'), 'new-expense', t('app_add_expense', 'Ajouter une dépense')) +
-      `<section class="glass-card view-card"><div class="filters">${searchInput('depenses', t('app_search_reason', 'Rechercher un motif…'))}<span class="muted">${visibleExpenses.length} ${t('app_unit_expense', 'dépense')}${visibleExpenses.length > 1 ? 's' : ''}${state.store !== 'all' ? ' · ' + escapeHtml(scopeLabel()) : ''}</span><button class="btn btn-light" data-action="export-csv-expenses">${t('app_export_csv', 'Exporter CSV ↗')}</button></div>${visibleExpenses.length ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>${t('app_th_reason', 'Motif')}</th><th>${t('app_th_added_by', 'Ajoutée par')}</th><th>${t('app_th_store', 'Boutique')}</th><th>${t('app_th_amount', 'Montant')}</th><th>${t('app_th_date', 'Date')}</th>${state.isPersonnel ? '' : '<th>' + t('app_th_action', 'Action') + '</th>'}</tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty-state"><strong>' + t('app_no_expense', 'Aucune dépense') + '</strong><span>' + t('app_no_expense_sub', 'Les dépenses ajoutées apparaîtront ici.') + '</span></div>'}</section>`;
+      `<section class="glass-card view-card"><div class="filters">${searchInput('depenses', t('app_search_reason', 'Rechercher un motif…'))}${state.isPersonnel ? '' : `<select class="filter-input" data-filter="expSeller" aria-label="${escapeHtml(t('app_filter_all_sellers', 'Tous les vendeurs'))}">${sellerOptions(state.filters.expSeller)}</select>`}<span class="muted">${visibleExpenses.length} ${t('app_unit_expense', 'dépense')}${visibleExpenses.length > 1 ? 's' : ''}${state.store !== 'all' ? ' · ' + escapeHtml(scopeLabel()) : ''}</span><button class="btn btn-light" data-action="export-csv-expenses">${t('app_export_csv', 'Exporter CSV ↗')}</button></div>${visibleExpenses.length ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>${t('app_th_reason', 'Motif')}</th><th>${t('app_th_added_by', 'Ajoutée par')}</th><th>${t('app_th_store', 'Boutique')}</th><th>${t('app_th_amount', 'Montant')}</th><th>${t('app_th_date', 'Date')}</th>${state.isPersonnel ? '' : '<th>' + t('app_th_action', 'Action') + '</th>'}</tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty-state"><strong>' + t('app_no_expense', 'Aucune dépense') + '</strong><span>' + t('app_no_expense_sub', 'Les dépenses ajoutées apparaîtront ici.') + '</span></div>'}</section>`;
   }
 
   function cashView() {
@@ -736,6 +751,9 @@
           }
         }, 150);
       };
+    });
+    document.querySelectorAll('[data-filter]').forEach(select => {
+      select.onchange = () => { state.filters[select.dataset.filter] = select.value; render(); };
     });
     document.querySelectorAll('[data-period]').forEach(button => button.onclick = () => { state.period = button.dataset.period; render(); });
     document.querySelectorAll('[data-action]').forEach(button => button.onclick = () => {

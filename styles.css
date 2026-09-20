@@ -905,6 +905,22 @@ background: linear-gradient(145deg, rgb(50 209 155 / 72%), rgba(255, 255, 255, .
   .glass-card {
     background: linear-gradient(145deg, rgba(255,255,255,.48), rgba(255,255,255,.20));
   }
+
+  /* 13. Garde-fous : aucun enfant de grille ne peut pousser plus large que l'écran */
+  .stats-grid > *,
+  .content-grid > *,
+  .glass-card,
+  .panel,
+  .view-card {
+    min-width: 0;
+  }
+  .page-content {
+    overflow-x: clip;
+  }
+  .chart-wrap {
+    min-width: 0;
+    overflow: hidden;
+  }
 }
 
 /* Très petits téléphones : une colonne pour garder des cartes lisibles */

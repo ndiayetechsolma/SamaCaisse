@@ -270,6 +270,43 @@
     showAuth();
   }));
 
+  // Déconnexion automatique après 15 minutes sans activité (clic, touche,
+  // toucher, défilement). Vérifiée toutes les 30 s via horodatage pour
+  // rester fiable même si l'onglet est en arrière-plan.
+  const IDLE_LIMIT_MS = 15 * 60 * 1000;
+  const IDLE_WARN_MS = 14 * 60 * 1000;
+  let lastActivity = Date.now();
+  let idleWarned = false;
+  const idleToast = message => {
+    const toast = document.getElementById('toast');
+    if (!toast) return;
+    toast.textContent = message;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 4000);
+  };
+  const idleLogout = () => {
+    clearStoredAccount();
+    sessionStorage.removeItem('solma_personnel_session');
+    window.solmaCompteSession = null;
+    window.solmaCompteData = null;
+    window.solmaPersonnelSession = null;
+    if (window.solmaSupabase) window.solmaSupabase.auth.signOut().catch(() => {});
+    showAuth();
+    error.textContent = t('app_idle_out', 'Session fermée après 15 minutes d’inactivité. Reconnectez-vous.');
+  };
+  ['click', 'keydown', 'touchstart', 'scroll'].forEach(eventName => {
+    window.addEventListener(eventName, () => { lastActivity = Date.now(); idleWarned = false; }, { passive: true, capture: true });
+  });
+  setInterval(() => {
+    if (!window.solmaCompteSession && !window.solmaPersonnelSession) return;
+    const idleFor = Date.now() - lastActivity;
+    if (idleFor >= IDLE_LIMIT_MS) idleLogout();
+    else if (idleFor >= IDLE_WARN_MS && !idleWarned) {
+      idleWarned = true;
+      idleToast(t('app_idle_warn', 'Déconnexion automatique dans 1 minute pour inactivité.'));
+    }
+  }, 30000);
+
   const start = async () => {
     const personnel = readStoredPersonnel();
     if (personnel?.token) {
