@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { getSuperAdminPayload } from './_lib/auth.js';
-import { rateLimit } from './_lib/ratelimit.js';
+import { rateLimitStrict } from './_lib/ratelimit.js';
+import { checkOrigin } from './_lib/cors.js';
 
 const client = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
@@ -9,13 +10,14 @@ const client = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVI
 const PAGES_AUTORISEES = ['/', '/app'];
 
 export default async function handler(request, response) {
+  if (!checkOrigin(request, response)) return;
   if (request.method === 'POST') return handlePing(request, response);
   if (request.method === 'GET') return handleStats(request, response);
   return response.status(405).json({ error: 'Method not allowed' });
 }
 
 async function handlePing(request, response) {
-  if (!rateLimit(request, { key: 'analytics', limit: 60, windowMs: 60000 }).allowed) {
+  if (!(await rateLimitStrict(client, request, { key: 'analytics', limit: 60, windowMs: 60000 })).allowed) {
     return response.status(429).json({ error: 'Trop de requêtes.' });
   }
   const { page } = request.body || {};
@@ -34,7 +36,7 @@ async function handleStats(request, response) {
     .select('jour, page, compteur')
     .gte('jour', depuis)
     .order('jour', { ascending: false });
-  if (error) return response.status(500).json({ error: error.message });
+  if (error) { console.error('analytics/stats:', error.message); return response.status(500).json({ error: 'Erreur serveur. Réessayez.' }); }
   const total = (data || []).reduce((somme, ligne) => somme + ligne.compteur, 0);
   return response.status(200).json({ total_30j: total, lignes: data || [] });
 }

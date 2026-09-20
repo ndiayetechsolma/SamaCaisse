@@ -1,9 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 import { getSession } from './_lib/auth.js';
+import { checkOrigin } from './_lib/cors.js';
 
 const client = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
 export default async function handler(request, response) {
+  if (!checkOrigin(request, response)) return;
   if (request.method === 'GET') return handleList(request, response);
   if (request.method !== 'POST') return response.status(405).json({ error: 'Method not allowed' });
 
@@ -28,7 +30,7 @@ async function handleList(request, response) {
     .order('date_heure', { ascending: false });
   if (identity.magasinId) query = query.eq('magasin_id', identity.magasinId);
   const { data, error } = await query;
-  if (error) return response.status(400).json({ error: error.message });
+  if (error) { console.error('expenses:', error.message); return response.status(400).json({ error: 'Données invalides.' }); }
   return response.status(200).json({ expenses: data });
 }
 
@@ -66,7 +68,7 @@ async function handleCreate(request, response, identity) {
     })
     .select('*, magasins(nom), personnel(nom)')
     .single();
-  if (error) return response.status(400).json({ error: error.message });
+  if (error) { console.error('expenses:', error.message); return response.status(400).json({ error: 'Données invalides.' }); }
   return response.status(201).json({ expense });
 }
 
@@ -84,7 +86,7 @@ async function handleCancel(request, response, identity) {
     .eq('annulee', false)
     .select('id')
     .maybeSingle();
-  if (error) return response.status(400).json({ error: error.message });
+  if (error) { console.error('expenses:', error.message); return response.status(400).json({ error: 'Données invalides.' }); }
   if (!expense) return response.status(404).json({ error: 'Dépense introuvable ou déjà annulée.' });
 
   return response.status(200).json({ success: true });

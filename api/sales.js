@@ -1,9 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 import { getSession } from './_lib/auth.js';
+import { checkOrigin } from './_lib/cors.js';
 
 const client = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
 export default async function handler(request, response) {
+  if (!checkOrigin(request, response)) return;
   if (request.method !== 'POST') return response.status(405).json({ error: 'Method not allowed' });
 
   const { identity } = await getSession(request);
@@ -53,7 +55,7 @@ async function handleCreate(request, response, identity) {
       .eq('compte_id', identity.compteId)
       .gte('stock', quantite)
       .select('id, stock');
-    if (updateError) return response.status(400).json({ error: updateError.message });
+    if (updateError) { console.error('sales/stock:', updateError.message); return response.status(400).json({ error: 'Données invalides.' }); }
     if (!updated?.length) return response.status(409).json({ error: `Stock insuffisant (${product.stock} restant): ${product.nom}` });
 
     finalProductId = product.id;
@@ -88,7 +90,8 @@ async function handleCreate(request, response, identity) {
     if (finalProductId) {
       await client.from('produits').update({ stock: decrementedStock + quantite }).eq('id', finalProductId).eq('compte_id', identity.compteId);
     }
-    return response.status(400).json({ error: saleError.message });
+    console.error('sales/create:', saleError.message);
+    return response.status(400).json({ error: 'Vente impossible.' });
   }
 
   return response.status(201).json({ sale, stock: finalProductId ? decrementedStock : null });
@@ -114,7 +117,7 @@ async function handleCancel(request, response, identity) {
     .update({ annulee: true, annulee_par: identity.compteId, annulee_le: new Date().toISOString() })
     .eq('id', sale.id)
     .eq('compte_id', identity.compteId);
-  if (error) return response.status(400).json({ error: error.message });
+  if (error) { console.error('sales/cancel:', error.message); return response.status(400).json({ error: 'Annulation impossible.' }); }
 
   if (sale.produit_id) {
     const { data: product } = await client

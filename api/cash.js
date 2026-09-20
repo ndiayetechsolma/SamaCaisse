@@ -1,9 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 import { getSession } from './_lib/auth.js';
+import { checkOrigin } from './_lib/cors.js';
 
 const client = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
 export default async function handler(request, response) {
+  if (!checkOrigin(request, response)) return;
   const { identity } = await getSession(request);
   if (!identity) return response.status(401).json({ error: 'Session invalide ou expirée.' });
 
@@ -23,11 +25,11 @@ export default async function handler(request, response) {
   if (request.method === 'GET') {
     if (request.query.history === 'true') {
       const { data, error } = await scoped(client.from('caisses').select('*')).order('date_ouverture', { ascending: false }).limit(90);
-      if (error) return response.status(400).json({ error: error.message });
+      if (error) { console.error('cash:', error.message); return response.status(400).json({ error: 'Données invalides.' }); }
       return response.status(200).json({ history: data });
     }
     const { data, error } = await scoped(client.from('caisses').select('*')).order('date_ouverture', { ascending: false }).limit(1).maybeSingle();
-    if (error) return response.status(400).json({ error: error.message });
+    if (error) { console.error('cash:', error.message); return response.status(400).json({ error: 'Données invalides.' }); }
     return response.status(200).json({ cash: data });
   }
 
@@ -49,7 +51,11 @@ export default async function handler(request, response) {
       })
       .select('*')
       .single();
-    if (error) return response.status(400).json({ error: error.code === '23505' ? 'Une caisse est déjà ouverte dans cette boutique.' : error.message });
+    if (error) {
+      if (error.code === '23505') return response.status(400).json({ error: 'Une caisse est déjà ouverte dans cette boutique.' });
+      console.error('cash/open:', error.message);
+      return response.status(400).json({ error: 'Ouverture impossible.' });
+    }
     return response.status(201).json({ cash: data });
   }
 
@@ -77,11 +83,12 @@ export default async function handler(request, response) {
       .eq('compte_id', identity.compteId)
       .select('*')
       .single();
-    if (error) return response.status(400).json({ error: error.message });
+    if (error) { console.error('cash:', error.message); return response.status(400).json({ error: 'Données invalides.' }); }
     return response.status(200).json({ cash: data, expected });
   }
 
   if (action === 'reopen') {
+    if (identity.type !== 'compte') return response.status(403).json({ error: 'Réservé au propriétaire.' });
     const { data: cash } = await scoped(client.from('caisses').select('*')).order('date_ouverture', { ascending: false }).limit(1).maybeSingle();
     if (!cash || !cash.date_fermeture) return response.status(400).json({ error: 'Aucune caisse fermée à rouvrir.' });
     const { data, error } = await client
@@ -91,7 +98,7 @@ export default async function handler(request, response) {
       .eq('compte_id', identity.compteId)
       .select('*')
       .single();
-    if (error) return response.status(400).json({ error: error.message });
+    if (error) { console.error('cash:', error.message); return response.status(400).json({ error: 'Données invalides.' }); }
     return response.status(200).json({ cash: data });
   }
 

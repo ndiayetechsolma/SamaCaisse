@@ -1,13 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
 import { getSession } from './_lib/auth.js';
+import { checkOrigin } from './_lib/cors.js';
 
 const client = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
 export default async function handler(request, response) {
+  if (!checkOrigin(request, response)) return;
   if (request.method !== 'POST') return response.status(405).json({ error: 'Method not allowed' });
 
   const { identity } = await getSession(request);
   if (!identity) return response.status(401).json({ error: 'Session invalide ou expirée.' });
+  if (identity.type !== 'compte') return response.status(403).json({ error: 'Réservé au propriétaire.' });
 
   const { action } = request.body || {};
   if (action === 'create') {
@@ -33,7 +36,8 @@ export default async function handler(request, response) {
       .single();
     if (error) {
       if (error.code === '23505') return response.status(409).json({ error: 'Ce produit existe déjà dans cet espace.' });
-      return response.status(400).json({ error: error.message });
+      console.error('products/create:', error.message);
+      return response.status(400).json({ error: 'Données invalides.' });
     }
     return response.status(201).json({ product });
   }
@@ -56,14 +60,14 @@ export default async function handler(request, response) {
       if (!Number.isInteger(stock) || stock < 0) return response.status(400).json({ error: 'Stock invalide.' });
       updates.stock = stock;
     }
-    const { data: product, error } = await client
-      .from('produits')
-      .update(updates)
-      .eq('id', produit_id)
-      .eq('compte_id', identity.compteId)
-      .select('*, magasins(nom)')
-      .maybeSingle();
-    if (error) return response.status(400).json({ error: error.message });
+  const { data: product, error } = await client
+    .from('produits')
+    .update(updates)
+    .eq('id', produit_id)
+    .eq('compte_id', identity.compteId)
+    .select('*, magasins(nom)')
+    .maybeSingle();
+  if (error) { console.error('products/update:', error.message); return response.status(400).json({ error: 'Données invalides.' }); }
     if (!product) return response.status(404).json({ error: 'Produit introuvable.' });
     return response.status(200).json({ product });
   }
@@ -78,7 +82,7 @@ export default async function handler(request, response) {
       .eq('compte_id', identity.compteId)
       .select('id, actif')
       .maybeSingle();
-    if (error) return response.status(400).json({ error: error.message });
+    if (error) { console.error('products/toggle:', error.message); return response.status(400).json({ error: 'Données invalides.' }); }
     if (!product) return response.status(404).json({ error: 'Produit introuvable.' });
     return response.status(200).json({ product });
   }

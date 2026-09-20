@@ -1,5 +1,5 @@
-// Anti-abus minimaliste et gratuit (mémoire par instance serverless).
-// Complète le honeypot + le piège temporel côté formulaires.
+// Anti-abus strict : compteur persistant en base (tient sur toutes les
+// instances serverless), repli mémoire si la table rate_limits n'existe pas.
 const buckets = new Map();
 
 function clientIp(request) {
@@ -24,6 +24,25 @@ export function rateLimit(request, { key, limit, windowMs }) {
     buckets.delete(oldest);
   }
   return { allowed: hits.length <= limit };
+}
+
+// Version stricte : fenêtre fixe persistée en base via le client service_role.
+// Retourne { allowed }. En cas d'erreur base, retombe sur la mémoire.
+export async function rateLimitStrict(client, request, { key, limit, windowMs }) {
+  const id = `${key}:${clientIp(request)}`;
+  try {
+    const now = new Date();
+    const { data: row } = await client.from('rate_limits').select('compteur, fenetre_debut').eq('cle', id).maybeSingle();
+    if (!row || now - new Date(row.fenetre_debut) >= windowMs) {
+      await client.from('rate_limits').upsert({ cle: id, compteur: 1, fenetre_debut: now.toISOString() }, { onConflict: 'cle' });
+      return { allowed: true };
+    }
+    if (row.compteur >= limit) return { allowed: false };
+    await client.from('rate_limits').update({ compteur: row.compteur + 1 }).eq('cle', id);
+    return { allowed: true };
+  } catch {
+    return rateLimit(request, { key, limit, windowMs });
+  }
 }
 
 // Champ piège : les robots le remplissent, les humains ne le voient pas.

@@ -37,7 +37,7 @@
 
     // Écran de connexion
     auth_owner_tab: { fr: 'Propriétaire', wo: 'Boroom bitik' }, // [sûr-ish] "propriétaire de boutique"
-    auth_staff_tab: { fr: 'Personnel', wo: 'Personnel' }, // [fr]
+    auth_staff_tab: { fr: 'Personnel', wo: 'Liggéeykat yi' },
     auth_welcome_title: { fr: 'Bienvenue dans votre espace.', wo: 'Dalal ak jàmm.' }, // [sûr] formule d'accueil très répandue
     auth_welcome_intro: { fr: 'Connectez-vous pour gérer vos boutiques.', wo: 'Dugg ngir jëfandikoo say bitik.' }, // [prudent]
     auth_create_title: { fr: 'Créez votre espace.', wo: 'Sos sa palas.' }, // [prudent] sos = créer/fonder ; palas = emprunt "place/espace"

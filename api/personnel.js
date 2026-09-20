@@ -2,13 +2,15 @@ import bcrypt from 'bcryptjs';
 import { SignJWT } from 'jose';
 import { createClient } from '@supabase/supabase-js';
 import { getSession } from './_lib/auth.js';
-import { rateLimit } from './_lib/ratelimit.js';
+import { rateLimitStrict } from './_lib/ratelimit.js';
+import { checkOrigin } from './_lib/cors.js';
 
 const client = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 const secret = new TextEncoder().encode(process.env.PERSONNEL_SESSION_SECRET || '');
 const normalizePhone = value => String(value || '').replace(/\D/g, '');
 
 export default async function handler(request, response) {
+  if (!checkOrigin(request, response)) return;
   if (request.method !== 'POST') return response.status(405).json({ error: 'Method not allowed' });
 
   const { action } = request.body || {};
@@ -21,7 +23,7 @@ export default async function handler(request, response) {
 
 async function handleLogin(request, response) {
   if (!process.env.PERSONNEL_SESSION_SECRET) return response.status(500).json({ error: 'Personnel session secret is not configured' });
-  if (!rateLimit(request, { key: 'personnel-login', limit: 10, windowMs: 600000 }).allowed) {
+  if (!(await rateLimitStrict(client, request, { key: 'personnel-login', limit: 10, windowMs: 600000 })).allowed) {
     return response.status(429).json({ error: 'Trop de tentatives. Réessayez dans quelques minutes.' });
   }
 
@@ -33,7 +35,7 @@ async function handleLogin(request, response) {
     .from('personnel')
     .select('id, nom, role, magasin_id, compte_id, code_pin_hash, telephone, magasins(nom, entreprise_id, compte_id)')
     .eq('actif', true);
-  if (error) return response.status(500).json({ error: error.message });
+  if (error) { console.error('personnel-login:', error.message); return response.status(500).json({ error: 'Erreur serveur. Réessayez.' }); }
 
   const row = (personnelRows || []).find(personnel => normalizePhone(personnel.telephone) === normalizedTelephone);
   if (!row || !(await bcrypt.compare(String(pin), row.code_pin_hash))) return response.status(401).json({ error: 'Invalid credentials' });
@@ -114,7 +116,7 @@ async function handleCreate(request, response) {
     })
     .select('id, nom, telephone, role, magasin_id, actif, cree_le')
     .single();
-  if (error) return response.status(400).json({ error: error.message });
+  if (error) { console.error('personnel:', error.message); return response.status(400).json({ error: 'Données invalides.' }); }
 
   return response.status(201).json({ membre: member });
 }
@@ -184,7 +186,7 @@ async function handleUpdate(request, response) {
     .eq('compte_id', identity.compteId)
     .select('id, nom, telephone, role, magasin_id, actif')
     .maybeSingle();
-  if (error) return response.status(400).json({ error: error.message });
+  if (error) { console.error('personnel:', error.message); return response.status(400).json({ error: 'Données invalides.' }); }
 
   return response.status(200).json({ membre: member });
 }
@@ -204,7 +206,7 @@ async function handleToggle(request, response) {
     .eq('compte_id', identity.compteId)
     .select('id, nom, actif')
     .maybeSingle();
-  if (error) return response.status(400).json({ error: error.message });
+  if (error) { console.error('personnel:', error.message); return response.status(400).json({ error: 'Données invalides.' }); }
   if (!member) return response.status(404).json({ error: 'Membre introuvable.' });
 
   return response.status(200).json({ membre: member });

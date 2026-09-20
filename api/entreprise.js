@@ -1,9 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 import { getComptePayload } from './_lib/auth.js';
+import { checkOrigin } from './_lib/cors.js';
 
 const client = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
 export default async function handler(request, response) {
+  if (!checkOrigin(request, response)) return;
   if (request.method !== 'POST') return response.status(405).json({ error: 'Method not allowed' });
 
   const payload = await getComptePayload(request);
@@ -34,7 +36,8 @@ export default async function handler(request, response) {
     .maybeSingle();
   if (error) {
     if (error.code === '23505') return response.status(409).json({ error: 'Vous possédez déjà une entreprise portant ce nom.' });
-    return response.status(400).json({ error: error.message });
+    console.error('entreprise:', error.message);
+    return response.status(400).json({ error: 'Données invalides.' });
   }
   if (!entreprise) return response.status(404).json({ error: 'Entreprise introuvable.' });
 

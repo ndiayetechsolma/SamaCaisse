@@ -1,11 +1,13 @@
 import bcrypt from 'bcryptjs';
 import { createClient } from '@supabase/supabase-js';
 import { signCompteToken, getComptePayload } from './_lib/auth.js';
-import { rateLimit, isHoneypotFilled, isTooFast } from './_lib/ratelimit.js';
+import { rateLimitStrict, isHoneypotFilled, isTooFast } from './_lib/ratelimit.js';
+import { checkOrigin } from './_lib/cors.js';
 
 const client = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
 export default async function handler(request, response) {
+  if (!checkOrigin(request, response)) return;
   if (request.method === 'GET') return handleMe(request, response);
   if (request.method === 'POST') return handlePost(request, response);
   if (request.method === 'PATCH') return handleProfile(request, response);
@@ -21,7 +23,7 @@ async function handleMe(request, response) {
     .select('id, nom, email, cree_le')
     .eq('id', payload.compte_id)
     .maybeSingle();
-  if (error) return response.status(500).json({ error: error.message });
+  if (error) { console.error('account/me:', error.message); return response.status(500).json({ error: 'Erreur serveur. Réessayez.' }); }
   if (!compte) return response.status(401).json({ error: 'Compte introuvable.' });
 
   const { data: entreprises, error: entreprisesError } = await client
@@ -29,7 +31,7 @@ async function handleMe(request, response) {
     .select('id, nom, devise, magasins(id, nom)')
     .eq('compte_id', compte.id)
     .order('nom');
-  if (entreprisesError) return response.status(500).json({ error: entreprisesError.message });
+  if (entreprisesError) { console.error('account/me-entreprises:', entreprisesError.message); return response.status(500).json({ error: 'Erreur serveur. Réessayez.' }); }
 
   return response.status(200).json({ compte, entreprises });
 }
@@ -43,7 +45,7 @@ async function handlePost(request, response) {
 }
 
 async function handleCreate(request, response) {
-  if (!rateLimit(request, { key: 'compte-create', limit: 5, windowMs: 3600000 }).allowed) {
+  if (!(await rateLimitStrict(client, request, { key: 'compte-create', limit: 5, windowMs: 3600000 })).allowed) {
     return response.status(429).json({ error: 'Trop de tentatives. Réessayez dans une heure.' });
   }
   if (isHoneypotFilled(request.body) || isTooFast(request.body)) {
@@ -64,7 +66,8 @@ async function handleCreate(request, response) {
 
   if (error) {
     if (error.code === '23505') return response.status(409).json({ error: 'Cet email est déjà inscrit.' });
-    return response.status(400).json({ error: error.message });
+    console.error('account/create:', error.message);
+    return response.status(400).json({ error: 'Données invalides.' });
   }
 
   const token = await signCompteToken(compte);
@@ -72,7 +75,7 @@ async function handleCreate(request, response) {
 }
 
 async function handleLogin(request, response) {
-  if (!rateLimit(request, { key: 'compte-login', limit: 20, windowMs: 600000 }).allowed) {
+  if (!(await rateLimitStrict(client, request, { key: 'compte-login', limit: 20, windowMs: 600000 })).allowed) {
     return response.status(429).json({ error: 'Trop de tentatives. Réessayez dans quelques minutes.' });
   }
   const { email, password } = request.body || {};
@@ -85,7 +88,7 @@ async function handleLogin(request, response) {
     .eq('email', normalizedEmail)
     .maybeSingle();
 
-  if (error) return response.status(500).json({ error: error.message });
+  if (error) { console.error('account/login:', error.message); return response.status(500).json({ error: 'Erreur serveur. Réessayez.' }); }
   if (!compte || !(await bcrypt.compare(String(password), compte.mot_de_passe_hash))) {
     return response.status(401).json({ error: 'Email ou mot de passe incorrect.' });
   }
@@ -97,6 +100,9 @@ async function handleLogin(request, response) {
 async function handleOnboarding(request, response) {
   const payload = await getComptePayload(request);
   if (!payload) return response.status(401).json({ error: 'Session invalide ou expirée.' });
+  if (!(await rateLimitStrict(client, request, { key: 'onboarding', limit: 10, windowMs: 3600000 })).allowed) {
+    return response.status(429).json({ error: 'Trop de tentatives. Réessayez dans une heure.' });
+  }
 
   const { entreprise_nom, devise, magasin_nom } = request.body || {};
   const entrepriseNom = String(entreprise_nom || '').trim().slice(0, 60);
@@ -113,7 +119,8 @@ async function handleOnboarding(request, response) {
     .single();
   if (entrepriseError) {
     if (entrepriseError.code === '23505') return response.status(400).json({ error: 'Vous possédez déjà une entreprise portant ce nom.' });
-    return response.status(400).json({ error: entrepriseError.message });
+    console.error('account/onboarding-entreprise:', entrepriseError.message);
+    return response.status(400).json({ error: 'Données invalides.' });
   }
 
   const { data: magasin, error: magasinError } = await client
@@ -121,7 +128,7 @@ async function handleOnboarding(request, response) {
     .insert({ compte_id: payload.compte_id, entreprise_id: entreprise.id, nom: magasinNom })
     .select('id, nom, entreprise_id')
     .single();
-  if (magasinError) return response.status(400).json({ error: magasinError.message });
+  if (magasinError) { console.error('account/onboarding-magasin:', magasinError.message); return response.status(400).json({ error: 'Données invalides.' }); }
 
   return response.status(201).json({ entreprise, magasin });
 }
@@ -165,7 +172,7 @@ async function handleProfile(request, response) {
     .eq('id', payload.compte_id)
     .select('id, nom, email, cree_le')
     .maybeSingle();
-  if (error) return response.status(400).json({ error: error.message });
+  if (error) { console.error('account/profile:', error.message); return response.status(400).json({ error: 'Données invalides.' }); }
 
   return response.status(200).json({ compte });
 }

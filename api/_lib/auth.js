@@ -16,7 +16,7 @@ export async function signCompteToken(compte) {
     .setProtectedHeader({ alg: 'HS256' })
     .setSubject(compte.id)
     .setIssuedAt()
-    .setExpirationTime('7d')
+    .setExpirationTime('24h')
     .sign(sessionSecret());
 }
 

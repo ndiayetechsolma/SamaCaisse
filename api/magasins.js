@@ -1,9 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 import { getSession } from './_lib/auth.js';
+import { checkOrigin } from './_lib/cors.js';
 
 const client = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
 export default async function handler(request, response) {
+  if (!checkOrigin(request, response)) return;
   if (request.method !== 'POST') return response.status(405).json({ error: 'Method not allowed' });
 
   const { identity } = await getSession(request);
@@ -33,7 +35,7 @@ export default async function handler(request, response) {
       .delete()
       .eq('id', magasin_id)
       .eq('compte_id', identity.compteId);
-    if (error) return response.status(400).json({ error: error.message });
+    if (error) { console.error('magasins/delete:', error.message); return response.status(400).json({ error: 'Suppression impossible.' }); }
     return response.status(200).json({ success: true });
   }
 
@@ -51,7 +53,8 @@ export default async function handler(request, response) {
       .maybeSingle();
     if (error) {
       if (error.code === '23505') return response.status(409).json({ error: 'Une boutique porte déjà ce nom dans votre entreprise.' });
-      return response.status(400).json({ error: error.message });
+      console.error('magasins/rename:', error.message);
+      return response.status(400).json({ error: 'Données invalides.' });
     }
     if (!magasin) return response.status(404).json({ error: 'Boutique introuvable.' });
     return response.status(200).json({ magasin });
@@ -79,7 +82,8 @@ export default async function handler(request, response) {
     .single();
   if (error) {
     if (error.code === '23505') return response.status(409).json({ error: 'Une boutique porte déjà ce nom dans votre entreprise.' });
-    return response.status(400).json({ error: error.message });
+    console.error('magasins/create:', error.message);
+    return response.status(400).json({ error: 'Données invalides.' });
   }
 
   return response.status(201).json({ magasin });

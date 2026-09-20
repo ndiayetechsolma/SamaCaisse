@@ -1,7 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 import { signCompteToken } from './_lib/auth.js';
-import { rateLimit } from './_lib/ratelimit.js';
+import { rateLimitStrict } from './_lib/ratelimit.js';
+import { checkOrigin } from './_lib/cors.js';
 
 const client = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
@@ -41,17 +42,25 @@ const seedDepenses = [
 ];
 
 export default async function handler(request, response) {
+  if (!checkOrigin(request, response)) return;
   if (request.method !== 'POST') return response.status(405).json({ error: 'Method not allowed' });
-  if (!rateLimit(request, { key: 'demo', limit: 20, windowMs: 3600000 }).allowed) {
+  if (!(await rateLimitStrict(client, request, { key: 'demo', limit: 20, windowMs: 3600000 })).allowed) {
     return response.status(429).json({ error: 'Trop de démos demandées. Réessayez plus tard.' });
   }
 
   try {
-    const { data: existing } = await client
+    let { data: existing } = await client
       .from('comptes')
       .select('id, nom, email, cree_le, mot_de_passe_hash')
       .eq('email', DEMO_EMAIL)
       .maybeSingle();
+
+    // Sandbox auto-nettoyant : passé 24 h, on rase le compte démo (cascade)
+    // et on le régénère propre. Borne la pollution à une journée.
+    if (existing && Date.now() - new Date(existing.cree_le).getTime() > 86400000) {
+      await client.from('comptes').delete().eq('id', existing.id);
+      existing = null;
+    }
 
     let compte = existing;
     const now = Date.now();
@@ -63,7 +72,7 @@ export default async function handler(request, response) {
         .insert({ nom: DEMO_COMPTE_NOM, mode: 'email', email: DEMO_EMAIL, mot_de_passe_hash: passwordHash })
         .select('id, nom, email, cree_le')
         .single();
-      if (error) return response.status(500).json({ error: error.message });
+      if (error) { console.error('demo/compte:', error.message); return response.status(500).json({ error: 'Erreur serveur. Réessayez.' }); }
       compte = created;
 
       const { data: entreprise, error: entrepriseError } = await client
@@ -71,7 +80,7 @@ export default async function handler(request, response) {
         .insert({ compte_id: compte.id, nom: 'Boutique Démo', devise: 'FCFA' })
         .select('id')
         .single();
-      if (entrepriseError) return response.status(500).json({ error: entrepriseError.message });
+      if (entrepriseError) { console.error('demo/entreprise:', entrepriseError.message); return response.status(500).json({ error: 'Erreur serveur. Réessayez.' }); }
 
       const { data: magasins, error: magasinsError } = await client
         .from('magasins')
@@ -80,7 +89,7 @@ export default async function handler(request, response) {
           { compte_id: compte.id, entreprise_id: entreprise.id, nom: 'Point de vente B' }
         ])
         .select('id, nom');
-      if (magasinsError) return response.status(500).json({ error: magasinsError.message });
+      if (magasinsError) { console.error('demo/magasins:', magasinsError.message); return response.status(500).json({ error: 'Erreur serveur. Réessayez.' }); }
 
       const produitsPayload = seedProduits.map(produit => ({
         compte_id: compte.id,
@@ -91,7 +100,7 @@ export default async function handler(request, response) {
         stock: produit.stock
       }));
       const { error: produitsError } = await client.from('produits').insert(produitsPayload);
-      if (produitsError) return response.status(500).json({ error: produitsError.message });
+      if (produitsError) { console.error('demo/produits:', produitsError.message); return response.status(500).json({ error: 'Erreur serveur. Réessayez.' }); }
 
       const { data: vendeur, error: vendeurError } = await client
         .from('personnel')
@@ -105,7 +114,7 @@ export default async function handler(request, response) {
           role: 'vendeur'
         })
         .select('id');
-      if (vendeurError) return response.status(500).json({ error: vendeurError.message });
+      if (vendeurError) { console.error('demo/vendeur:', vendeurError.message); return response.status(500).json({ error: 'Erreur serveur. Réessayez.' }); }
 
       const ventesPayload = seedVentes.map((vente, index) => ({
         compte_id: compte.id,
@@ -119,7 +128,7 @@ export default async function handler(request, response) {
         date_heure: new Date(now - vente.jours * 86400000 - index * 3600000).toISOString()
       }));
       const { error: ventesError } = await client.from('ventes').insert(ventesPayload);
-      if (ventesError) return response.status(500).json({ error: ventesError.message });
+      if (ventesError) { console.error('demo/ventes:', ventesError.message); return response.status(500).json({ error: 'Erreur serveur. Réessayez.' }); }
 
       const depensesPayload = seedDepenses.map((depense, index) => ({
         compte_id: compte.id,
@@ -131,7 +140,7 @@ export default async function handler(request, response) {
         date_heure: new Date(now - depense.jours * 86400000 - index * 5400000).toISOString()
       }));
       const { error: depensesError } = await client.from('depenses').insert(depensesPayload);
-      if (depensesError) return response.status(500).json({ error: depensesError.message });
+      if (depensesError) { console.error('demo/depenses:', depensesError.message); return response.status(500).json({ error: 'Erreur serveur. Réessayez.' }); }
 
       await client.from('caisses').insert([
         {
@@ -148,6 +157,7 @@ export default async function handler(request, response) {
     const { mot_de_passe_hash, ...safeCompte } = compte;
     return response.status(200).json({ token, compte: safeCompte });
   } catch (error) {
-    return response.status(500).json({ error: error.message });
+    console.error('demo:', error.message);
+    return response.status(500).json({ error: 'Erreur serveur. Réessayez.' });
   }
 }
