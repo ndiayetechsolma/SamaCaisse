@@ -17,9 +17,19 @@ export default async function handler(request, response) {
 }
 
 async function handleCreate(request, response, identity) {
-  const { produit_id = null, nom_produit, quantite = 1, montant, mode_paiement, magasin_id } = request.body || {};
-  if (!['liquide', 'mobile_money'].includes(mode_paiement) || !Number.isInteger(quantite) || quantite <= 0 || !Number.isInteger(montant) || montant <= 0) {
+  const { produit_id = null, nom_produit, quantite = 1, montant, mode_paiement, magasin_id, client_nom = '', client_telephone = '', date_echeance = '' } = request.body || {};
+  if (!['liquide', 'mobile_money', 'credit'].includes(mode_paiement) || !Number.isInteger(quantite) || quantite <= 0 || !Number.isInteger(montant) || montant <= 0) {
     return response.status(400).json({ error: 'Données de vente invalides.' });
+  }
+  const isCredit = mode_paiement === 'credit';
+  const creditNom = String(client_nom || '').trim().slice(0, 60);
+  const creditTel = String(client_telephone || '').replace(/\D/g, '').slice(0, 20);
+  const creditEcheance = String(date_echeance || '').slice(0, 10);
+  if (isCredit) {
+    if (!creditNom) return response.status(400).json({ error: 'Nom du client requis pour une vente à crédit.' });
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(creditEcheance) || Number.isNaN(new Date(creditEcheance).getTime())) {
+      return response.status(400).json({ error: 'Date d’échéance invalide.' });
+    }
   }
 
   let storeId = identity.type === 'personnel' ? identity.magasinId : magasin_id;
@@ -94,6 +104,23 @@ async function handleCreate(request, response, identity) {
     return response.status(400).json({ error: 'Vente impossible.' });
   }
 
+  if (isCredit) {
+    const { error: detteError } = await client.from('dettes').insert({
+      compte_id: identity.compteId,
+      entreprise_id: entrepriseId,
+      magasin_id: storeId,
+      vente_id: sale.id,
+      client_nom: creditNom,
+      client_telephone: creditTel || null,
+      montant_total: montant,
+      montant_paye: 0,
+      date_echeance: creditEcheance,
+      personnel_id: identity.type === 'personnel' ? identity.personnelId : null,
+      admin_nom: adminNom
+    });
+    if (detteError) { console.error('sales/credit:', detteError.message); return response.status(400).json({ error: 'Vente enregistrée, dette non créée.' }); }
+  }
+
   return response.status(201).json({ sale, stock: finalProductId ? decrementedStock : null });
 }
 
@@ -118,6 +145,13 @@ async function handleCancel(request, response, identity) {
     .eq('id', sale.id)
     .eq('compte_id', identity.compteId);
   if (error) { console.error('sales/cancel:', error.message); return response.status(400).json({ error: 'Annulation impossible.' }); }
+
+  await client
+    .from('dettes')
+    .update({ annulee: true, annulee_par: identity.compteId, annulee_le: new Date().toISOString() })
+    .eq('vente_id', sale.id)
+    .eq('compte_id', identity.compteId)
+    .eq('annulee', false);
 
   if (sale.produit_id) {
     const { data: product } = await client

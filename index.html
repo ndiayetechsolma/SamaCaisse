@@ -29,7 +29,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260918-4">
+  <link rel="stylesheet" href="styles.css?v=20260919-1">
 </head>
 
 <body>
@@ -286,6 +286,17 @@
           <span class="nav-text" data-i18n="nav_expenses">Dépenses</span>
         </button>
 
+        <button class="nav-item" data-view="debts" data-tooltip="Dettes clients">
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="9"/>
+              <polyline points="12 7 12 12 15.5 13.5"/>
+            </svg>
+          </span>
+          <span class="nav-text" data-i18n="nav_debts">Dettes clients</span>
+          <span class="nav-count hidden" id="nav-debts-count"></span>
+        </button>
+
         </div>
 
         <p class="nav-label management-label" data-i18n="nav_management">Gestion</p>
@@ -511,9 +522,9 @@
   </script>
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script defer src="config.js"></script>
-  <script defer src="i18n.js?v=20260918-3"></script>
+  <script defer src="i18n.js?v=20260919-2"></script>
   <script defer src="auth.js?v=20260918-4"></script>
-  <script defer src="app.js?v=20260918-5"></script>
+  <script defer src="app.js?v=20260919-2"></script>
 
 </body>
 </html>

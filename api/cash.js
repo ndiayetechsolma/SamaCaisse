@@ -63,7 +63,15 @@ export default async function handler(request, response) {
     if (!Number.isInteger(montant_fermeture) || montant_fermeture < 0) return response.status(400).json({ error: 'Montant de fermeture invalide.' });
     const { data: cash } = await scoped(client.from('caisses').select('*')).is('date_fermeture', null).maybeSingle();
     if (!cash) return response.status(404).json({ error: 'Aucune caisse ouverte.' });
-    const since = cash.date_ouverture;
+    // Début de session : dernière clôture (les ventes faites caisse fermée
+    // sont rattachées à cette session, jamais perdues).
+    const { data: lastClosed } = await scoped(client.from('caisses').select('date_fermeture'))
+      .not('date_fermeture', 'is', null)
+      .lt('date_fermeture', cash.date_ouverture)
+      .order('date_fermeture', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const since = lastClosed?.date_fermeture || '1970-01-01T00:00:00.000Z';
     const [{ data: sales }, { data: expenses }] = await Promise.all([
       scoped(client.from('ventes').select('montant').eq('mode_paiement', 'liquide').eq('annulee', false)).gte('date_heure', since),
       scoped(client.from('depenses').select('montant').eq('annulee', false)).gte('date_heure', since)

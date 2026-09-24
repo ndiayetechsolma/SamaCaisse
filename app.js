@@ -21,14 +21,16 @@
     produits: [],
     ventes: [],
     depenses: [],
+    dettes: [],
+    versements: [],
     caisses: [],
     personnel: [],
     store: 'all',
     loading: true,
     error: '',
     currentView: 'dashboard',
-    search: { produits: '', ventes: '', depenses: '' },
-    filters: { salesSeller: 'all', salesPayment: 'all', expSeller: 'all' },
+    search: { produits: '', ventes: '', depenses: '', dettes: '' },
+    filters: { salesSeller: 'all', salesPayment: 'all', expSeller: 'all', detteStatut: 'all' },
     period: 'today'
   };
 
@@ -58,6 +60,9 @@
 
   const t = (key, fallback) => window.SamaCaisseI18n ? window.SamaCaisseI18n.t(key) : fallback;
 
+  const LAST_STORE_KEY = 'samacaisse_last_store';
+  const readLastStore = () => { try { return localStorage.getItem(LAST_STORE_KEY) || ''; } catch { return ''; } };
+  const saveLastStore = id => { try { if (id) localStorage.setItem(LAST_STORE_KEY, id); } catch {} };
   const storeName = magasinId => state.magasins.find(magasin => magasin.id === magasinId)?.nom || t('store_all', 'Toutes les boutiques');
   const scopeMatches = item => state.store === 'all' || item.magasin_id === state.store || (item.magasin_id === null && state.store === 'all');
   const filtered = (items) => items.filter(scopeMatches);
@@ -92,6 +97,8 @@
     state.produits = payload.produits || [];
     state.ventes = payload.ventes || [];
     state.depenses = payload.depenses || [];
+    state.dettes = payload.dettes || [];
+    state.versements = payload.versements || [];
     state.caisses = payload.caisses || [];
     state.personnel = payload.personnel || [];
     state.loading = false;
@@ -100,7 +107,7 @@
     maybeStartTour();
   }
 
-  const pageTitle = () => ({ dashboard: t('nav_dashboard', 'Tableau de bord'), sales: t('nav_sales', 'Ventes'), cash: t('nav_cash', 'Caisses'), expenses: t('nav_expenses', 'Dépenses'), products: t('nav_products', 'Produits'), team: t('nav_team', 'Personnel'), reports: t('nav_reports', 'Rapports') }[state.currentView] || t('nav_dashboard', 'Tableau de bord'));
+  const pageTitle = () => ({ dashboard: t('nav_dashboard', 'Tableau de bord'), sales: t('nav_sales', 'Ventes'), cash: t('nav_cash', 'Caisses'), expenses: t('nav_expenses', 'Dépenses'), debts: t('nav_debts', 'Dettes clients'), products: t('nav_products', 'Produits'), team: t('nav_team', 'Personnel'), reports: t('nav_reports', 'Rapports') }[state.currentView] || t('nav_dashboard', 'Tableau de bord'));
 
   function buildTrendSvg(sales) {
     const days = [];
@@ -127,14 +134,56 @@
     return `<svg class="chart" viewBox="0 0 700 220" preserveAspectRatio="none"><defs><linearGradient id="area" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#80bca0" stop-opacity=".30"/><stop offset="1" stop-color="#80bca0" stop-opacity="0"/></linearGradient></defs><line class="chart-grid" x1="0" y1="30" x2="700" y2="30"/><line class="chart-grid" x1="0" y1="87" x2="700" y2="87"/><line class="chart-grid" x1="0" y1="144" x2="700" y2="144"/><path class="chart-area" d="${areaPath}"/><path class="chart-line" d="${linePath}"/><circle class="chart-dot" cx="${lastPoint.x.toFixed(1)}" cy="${lastPoint.y.toFixed(1)}" r="5"/>${points.map((point, index) => `<text class="axis-label" x="${point.x.toFixed(1)}" y="216" text-anchor="${index === 0 ? 'start' : index === points.length - 1 ? 'end' : 'middle'}">${point.label}</text>`).join('')}${yTicks.map(tick => `<text class="axis-label" x="696" y="${(tick.y - 5).toFixed(1)}" text-anchor="end">${shortMoney(tick.value)}</text>`).join('')}</svg>`;
   }
 
+  // Début de session : dernière clôture de la boutique (les ventes faites
+  // caisse fermée sont rattachées à la session suivante, jamais perdues).
+  function sessionStart(caisse) {
+    const fermetures = state.caisses
+      .filter(item => item.magasin_id === caisse.magasin_id && item.date_fermeture && item.id !== caisse.id && new Date(item.date_fermeture) < new Date(caisse.date_ouverture))
+      .map(item => new Date(item.date_fermeture).getTime());
+    return fermetures.length ? new Date(Math.max(...fermetures)) : null;
+  }
+
   function cashExpectation(caisse) {
     if (!caisse) return 0;
     if (caisse.date_fermeture) return caisse.montant_fermeture || 0;
-    const since = new Date(caisse.date_ouverture);
-    const sales = state.ventes.filter(v => v.magasin_id === caisse.magasin_id && !v.annulee && v.mode_paiement === 'liquide' && new Date(v.date_heure) >= since).reduce((sum, v) => sum + v.montant, 0);
-    const expenses = state.depenses.filter(d => d.magasin_id === caisse.magasin_id && !d.annulee && new Date(d.date_heure) >= since).reduce((sum, d) => sum + d.montant, 0);
+    const since = sessionStart(caisse);
+    const inSession = timestamp => !since || new Date(timestamp) >= since;
+    const sales = state.ventes.filter(v => v.magasin_id === caisse.magasin_id && !v.annulee && v.mode_paiement === 'liquide' && inSession(v.date_heure)).reduce((sum, v) => sum + v.montant, 0);
+    const expenses = state.depenses.filter(d => d.magasin_id === caisse.magasin_id && !d.annulee && inSession(d.date_heure)).reduce((sum, d) => sum + d.montant, 0);
     return caisse.montant_ouverture + sales - expenses;
   }
+
+  // Montant réel continu du tiroir : ouvertures + ventes liquide − dépenses
+  // − fermetures (l'argent compté est retiré). Jamais zéro à tort.
+  function cashReel(magasinId) {
+    const caisses = state.caisses.filter(item => item.magasin_id === magasinId);
+    const ouvertures = caisses.reduce((sum, item) => sum + (item.montant_ouverture || 0), 0);
+    const fermetures = caisses.filter(item => item.date_fermeture).reduce((sum, item) => sum + (item.montant_fermeture || 0), 0);
+    const sales = state.ventes.filter(v => v.magasin_id === magasinId && !v.annulee && v.mode_paiement === 'liquide').reduce((sum, v) => sum + v.montant, 0);
+    const expenses = state.depenses.filter(d => d.magasin_id === magasinId && !d.annulee).reduce((sum, d) => sum + d.montant, 0);
+    return ouvertures + sales - expenses - fermetures;
+  }
+
+  const todayKey = () => {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  };
+  const detteReste = dette => Math.max(0, (dette.montant_total || 0) - (dette.montant_paye || 0));
+  const detteStatut = dette => {
+    if (dette.annulee) return 'annulee';
+    if (detteReste(dette) <= 0) return 'soldee';
+    const echeance = String(dette.date_echeance || '').slice(0, 10);
+    const aujourd = todayKey();
+    if (echeance < aujourd) return 'retard';
+    if (echeance === aujourd) return 'jour';
+    return 'avenir';
+  };
+  const personnelOwnDettes = items => {
+    if (!state.isPersonnel) return items;
+    const pid = window.solmaPersonnelSession?.personnel?.id;
+    if (!pid) return items;
+    return items.filter(dette => dette.personnel_id === pid);
+  };
 
   function csvCell(value) {
     const str = String(value ?? '');
@@ -247,7 +296,8 @@
     const totalExpenses = periodExpenses.reduce((sum, depense) => sum + depense.montant, 0);
     const chartSales = filtered(state.ventes).filter(sale => !sale.annulee);
     const openCash = filtered(state.caisses).filter(item => !item.date_fermeture);
-    const cashTotal = openCash.reduce((sum, item) => sum + cashExpectation(item), 0);
+    const storesInScope = state.store === 'all' ? state.magasins : state.magasins.filter(magasin => magasin.id === state.store);
+    const cashTotal = storesInScope.reduce((sum, magasin) => sum + cashReel(magasin.id), 0);
     const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayTotal = filtered(state.ventes).filter(sale => !sale.annulee && isSameDay(new Date(sale.date_heure), yesterday)).reduce((sum, sale) => sum + sale.montant, 0);
     let trend;
@@ -267,11 +317,12 @@
     const latestSales = personnelOwnSales(filtered(state.ventes)).slice(0, 5);
     const isTodayPeriod = state.period === 'today';
     return `<div class="page-heading"><div><p class="eyebrow">${todayLabel.charAt(0).toUpperCase() + todayLabel.slice(1)}</p><h1>${t('app_hello', 'Bonjour')} ${escapeHtml(sellerName)}</h1><p class="subtle">${t('app_dash_happening', 'Voici ce qui se passe aujourd’hui')}${periodLabel}.</p></div>${state.isPersonnel ? '' : `<div class="page-heading-actions">${periodSelector()}<button class="btn btn-primary" data-action="new-sale">${icon('plus', 14)} ${t('common_new_sale', 'Nouvelle vente')}</button></div>`}</div>
+    ${duesBanner()}
     <section class="stats-grid">
       <article class="glass-card stat-card"><div class="stat-top"><span>${isTodayPeriod ? t('app_dash_sales_day', 'Ventes du jour') : t('app_dash_sales_period', 'Ventes de la période')}</span><span class="stat-symbol">${icon('trendingUp')}</span></div><h2>${money(totalSales)}</h2><div class="stat-foot ${yesterdayTotal > 0 ? '' : 'neutral'}"><b>${trend}</b> ${t('app_dash_vs_yesterday', 'vs. hier')}</div></article>
       <article class="glass-card stat-card"><div class="stat-top"><span>${t('app_dash_transactions', 'Transactions')}</span><span class="stat-symbol">${icon('activity')}</span></div><h2>${sales.length}</h2><div class="stat-foot neutral">${isTodayPeriod ? t('app_dash_trans_today', 'Ventes enregistrées aujourd’hui') : t('app_dash_trans_period', 'Ventes enregistrées sur la période')}</div></article>
       <article class="glass-card stat-card"><div class="stat-top"><span>${isTodayPeriod ? t('app_dash_expenses', 'Dépenses du jour') : t('app_dash_expenses_period', 'Dépenses de la période')}</span><span class="stat-symbol">${icon('trendingDown')}</span></div><h2>${money(totalExpenses)}</h2><div class="stat-foot neutral">${periodExpenses.length} ${t('app_dash_expense_unit', 'dépense')}${periodExpenses.length > 1 ? 's' : ''} ${isTodayPeriod ? t('app_dash_today_word', 'aujourd’hui') : t('app_dash_on_period', 'sur la période')}</div></article>
-      <article class="glass-card stat-card"><div class="stat-top"><span>${t('app_dash_cash', 'Caisse attendue')}</span><span class="stat-symbol">${icon('wallet')}</span></div><h2>${money(cashTotal)}</h2><div class="stat-foot ${openCash.length ? '' : 'neutral'}">${openCash.length ? t('app_dash_cash_open', 'Caisse ouverte') : t('app_dash_cash_none', 'Caisse non ouverte')}</div></article>
+      <article class="glass-card stat-card"><div class="stat-top"><span>${t('app_dash_cash', 'Caisse réelle')}</span><span class="stat-symbol">${icon('wallet')}</span></div><h2>${money(cashTotal)}</h2><div class="stat-foot ${openCash.length ? '' : 'neutral'}">${openCash.length ? t('app_dash_cash_open', 'Caisse ouverte') : t('app_dash_cash_none', 'Caisse non ouverte')}</div></article>
     </section>
     <section class="content-grid">
       <article class="glass-card panel"><div class="panel-header"><div><h3>${t('app_dash_perf', 'Performance des ventes')}</h3><p>${t('app_dash_perf_sub', 'Chiffre d’affaires des 7 derniers jours')}</p></div><button class="text-link" data-view-link="reports">${t('app_dash_see_report', 'Voir le rapport ↗')}</button></div><div class="chart-wrap">${buildTrendSvg(chartSales)}</div><div class="legend"><span><i></i> ${t('app_chart_total', 'Total des ventes')}</span></div></article>
@@ -338,12 +389,47 @@
       `<section class="glass-card view-card"><div class="filters">${searchInput('depenses', t('app_search_reason', 'Rechercher un motif…'))}${state.isPersonnel ? '' : `<select class="filter-input" data-filter="expSeller" aria-label="${escapeHtml(t('app_filter_all_sellers', 'Tous les vendeurs'))}">${sellerOptions(state.filters.expSeller)}</select>`}<span class="muted">${visibleExpenses.length} ${t('app_unit_expense', 'dépense')}${visibleExpenses.length > 1 ? 's' : ''}${state.store !== 'all' ? ' · ' + escapeHtml(scopeLabel()) : ''}</span><button class="btn btn-light" data-action="export-csv-expenses">${t('app_export_csv', 'Exporter CSV ↗')}</button></div>${visibleExpenses.length ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>${t('app_th_reason', 'Motif')}</th><th>${t('app_th_added_by', 'Ajoutée par')}</th><th>${t('app_th_store', 'Boutique')}</th><th>${t('app_th_amount', 'Montant')}</th><th>${t('app_th_date', 'Date')}</th>${state.isPersonnel ? '' : '<th>' + t('app_th_action', 'Action') + '</th>'}</tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty-state"><strong>' + t('app_no_expense', 'Aucune dépense') + '</strong><span>' + t('app_no_expense_sub', 'Les dépenses ajoutées apparaîtront ici.') + '</span></div>'}</section>`;
   }
 
+  function dettesView() {
+    const statutLabel = s => ({
+      retard: t('app_debt_late', 'En retard'),
+      jour: t('app_debt_today', "Aujourd'hui"),
+      avenir: t('app_debt_soon', 'À venir'),
+      soldee: t('app_debt_sold', 'Soldée'),
+      annulee: t('app_debt_cancelled', 'Annulée')
+    }[s] || s);
+    const visible = personnelOwnDettes(filtered(state.dettes))
+      .filter(dette => matchesSearch((dette.client_nom || '') + ' ' + (dette.client_telephone || ''), 'dettes'))
+      .filter(dette => {
+        const f = state.filters.detteStatut;
+        if (f === 'all') return true;
+        if (f === 'ouvertes') return !dette.annulee && detteReste(dette) > 0;
+        return detteStatut(dette) === f;
+      })
+      .sort((a, b) => String(a.date_echeance || '').localeCompare(String(b.date_echeance || '')));
+    const rows = visible.map(dette => {
+      const statut = detteStatut(dette);
+      const reste = detteReste(dette);
+      const echeance = dette.date_echeance ? new Date(dette.date_echeance + 'T12:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+      return `<tr><td><strong>${escapeHtml(dette.client_nom)}</strong><br><span class="muted">${escapeHtml(dette.client_telephone || '—')}</span></td><td><strong>${money(dette.montant_total)}</strong><br><span class="muted">${t('app_debt_paid', 'Déjà payé')} : ${money(dette.montant_paye || 0)}</span></td><td><strong class="${reste > 0 ? 'negative' : 'positive'}">${money(reste)}</strong></td><td>${escapeHtml(echeance)}<br><span class="badge ${statut === 'retard' ? 'badge-cash' : 'badge-money'}">${statutLabel(statut)}</span></td><td class="muted">${escapeHtml(storeName(dette.magasin_id))}</td><td>${!dette.annulee && reste > 0 ? `<button class="text-link" data-pay-dette="${dette.id}">${t('app_debt_pay', 'Encaisser')}</button>` : '<span class="muted">—</span>'}${state.isPersonnel ? '' : (dette.annulee ? '' : ` · <button class="text-link danger-link" data-cancel-dette="${dette.id}">${t('app_cancel', 'Annuler')}</button>`)}</td></tr>`;
+    }).join('');
+    return genericHeader(t('nav_debts', 'Dettes clients'), t('app_view_debts_sub', 'Crédits accordés et recouvrement, par ordre d’urgence.'), 'new-debt', t('app_new_debt', 'Nouvelle dette')) +
+      `<section class="glass-card view-card"><div class="filters">${searchInput('dettes', t('app_search_client', 'Rechercher un client…'))}<select class="filter-input" data-filter="detteStatut" aria-label="Statut">${['all', 'ouvertes', 'retard', 'jour', 'avenir', 'soldee'].map(v => `<option value="${v}"${state.filters.detteStatut === v ? ' selected' : ''}>${v === 'all' ? t('app_filter_all_status', 'Tous les statuts') : v === 'ouvertes' ? t('app_debt_open', 'Non soldées') : statutLabel(v)}</option>`).join('')}</select><span class="muted">${visible.length} ${t('app_unit_debt', 'dette')}${visible.length > 1 ? 's' : ''}</span></div>${visible.length ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>${t('app_debt_client', 'Client')}</th><th>${t('app_th_total', 'Total')}</th><th>${t('app_debt_left', 'Reste')}</th><th>${t('app_debt_due', 'Échéance')}</th><th>${t('app_th_store', 'Boutique')}</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="empty-state"><strong>' + t('app_debt_none', 'Aucune dette') + '</strong><span>' + t('app_debt_none_sub', 'Les crédits accordés apparaîtront ici, triés par urgence.') + '</span></div>'}</section>`;
+  }
+
+  function duesBanner() {
+    const open = personnelOwnDettes(filtered(state.dettes)).filter(dette => !dette.annulee && detteReste(dette) > 0);
+    if (!open.length) return '';
+    const late = open.filter(dette => detteStatut(dette) === 'retard');
+    const total = open.reduce((sum, dette) => sum + detteReste(dette), 0);
+    return `<button type="button" class="glass-card due-banner ${late.length ? 'due-late' : ''}" data-view-link="debts"><span class="due-icon">${icon('wallet', 18)}</span><span class="due-text"><strong>${money(total)} ${t('app_due_title', 'à recouvrer')}</strong><span>${late.length ? late.length + ' ' + t('app_due_late', 'en retard') : t('app_due_ok', 'échéances à venir')}</span></span><span class="due-go">↗</span></button>`;
+  }
+
   function cashView() {
     const magasins = state.store === 'all' ? state.magasins : state.magasins.filter(magasin => magasin.id === state.store);
     const cards = magasins.map(magasin => {
       const caisse = filtered(state.caisses).find(item => item.magasin_id === magasin.id);
       const open = Boolean(caisse && !caisse.date_fermeture);
-      return `<article class="glass-card view-card"><div class="panel-header"><div><h3>${t('app_cash_card', 'Caisse')} ${escapeHtml(magasin.nom)}</h3><p>${open ? t('app_dash_open', 'Ouverte') : t('app_dash_closed', 'Fermée')}${caisse ? ' · ' + escapeHtml(toTime(caisse.date_ouverture)) : ''}</p></div><span class="badge ${open ? 'badge-money' : 'badge-cash'}">${open ? t('app_dash_ongoing', 'En cours') : t('app_dash_closed', 'Fermée')}</span></div><div class="form-grid"><div><span class="muted">${t('app_cash_opening', 'Montant d’ouverture')}</span><h3>${money(caisse?.montant_ouverture || 0)}</h3></div><div><span class="muted">${t('app_cash_expected', 'Montant attendu')}</span><h3>${money(caisse && !caisse.date_fermeture ? cashExpectation(caisse) : (caisse?.montant_fermeture || 0))}</h3></div></div><div class="form-actions"><button class="btn ${open ? 'btn-danger' : 'btn-primary'}" data-action="${open ? 'close-cash' : 'open-cash'}" data-store="${magasin.id}">${open ? t('app_cash_close_btn', 'Fermer la caisse') : t('app_cash_open_btn', 'Ouvrir la caisse')}</button></div></article>`;
+      return `<article class="glass-card view-card"><div class="panel-header"><div><h3>${t('app_cash_card', 'Caisse')} ${escapeHtml(magasin.nom)}</h3><p>${open ? t('app_dash_open', 'Ouverte') : t('app_dash_closed', 'Fermée')}${caisse ? ' · ' + escapeHtml(toTime(caisse.date_ouverture)) : ''}</p></div><span class="badge ${open ? 'badge-money' : 'badge-cash'}">${open ? t('app_dash_ongoing', 'En cours') : t('app_dash_closed', 'Fermée')}</span></div><div class="form-grid"><div><span class="muted">${t('app_cash_opening', 'Montant d’ouverture')}</span><h3>${money(caisse?.montant_ouverture || 0)}</h3></div><div><span class="muted">${t('app_cash_real', 'Montant réel')}</span><h3>${money(cashReel(magasin.id))}</h3></div>${open && caisse ? `<div><span class="muted">${t('app_cash_session', 'Attendu (session)')}</span><h3>${money(cashExpectation(caisse))}</h3></div>` : ''}</div><div class="form-actions"><button class="btn ${open ? 'btn-danger' : 'btn-primary'}" data-action="${open ? 'close-cash' : 'open-cash'}" data-store="${magasin.id}">${open ? t('app_cash_close_btn', 'Fermer la caisse') : t('app_cash_open_btn', 'Ouvrir la caisse')}</button></div></article>`;
     }).join('');
     const history = filtered(state.caisses).filter(item => item.date_fermeture).map(item => {
       const ecart = item.ecart || 0;
@@ -424,8 +510,16 @@
     return rows ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>${t('app_th_closed_at', 'Clôturée le')}</th><th>${t('app_th_store', 'Boutique')}</th><th>${t('app_th_opening', 'Ouverture')}</th><th>${t('app_th_theoretical', 'Solde théorique')}</th><th>${t('app_th_real', 'Solde réel')}</th><th>${t('app_th_gap', 'Écart')}</th></tr></thead><tbody>${rows}</tbody></table></div>` : null;
   }
 
-  function storeOptions() {
-    return state.magasins.map(magasin => `<option value="${magasin.id}">${escapeHtml(magasin.nom)}</option>`).join('');
+  function storeOptions(selectedId = '') {
+    return state.magasins.map(magasin => `<option value="${magasin.id}"${magasin.id === selectedId ? ' selected' : ''}>${escapeHtml(magasin.nom)}</option>`).join('');
+  }
+
+  // Boutique pré-remplie : dernière utilisée (proprio) ou assignée (vendeur).
+  function defaultStoreId() {
+    if (state.isPersonnel) return state.store && state.store !== 'all' ? state.store : '';
+    const last = readLastStore();
+    if (last && state.magasins.some(m => m.id === last)) return last;
+    return '';
   }
 
   function openModal(type, payload = null) {
@@ -438,7 +532,7 @@
 
     if (type === 'sale') {
       title = t('app_modal_sale', 'Enregistrer une vente');
-      const storeField = state.isPersonnel ? '' : `<div class="field"><label>${t('app_th_store', 'Boutique')}</label><select id="modal-store"><option value="">${t('app_modal_store_ph', '— Sélectionner —')}</option>${storeOptions()}</select></div>`;
+      const storeField = state.isPersonnel ? '' : `<div class="field"><label>${t('app_th_store', 'Boutique')}</label><select id="modal-store"><option value="">${t('app_modal_store_ph', '— Sélectionner —')}</option>${storeOptions(defaultStoreId())}</select></div>`;
       const catalogProducts = state.produits.filter(product => product.actif !== false && (state.isPersonnel ? product.magasin_id === state.store || product.magasin_id === null : true));
       const catalogGrid = catalogProducts.length
         ? `<div class="sale-catalog-grid">${catalogProducts.map(product => `<button type="button" class="sale-catalog-item" data-catalog-product="${product.id}"><span class="sale-catalog-name">${escapeHtml(product.nom)}</span><span class="sale-catalog-prix">${money(product.prix)}</span><span class="sale-catalog-stock ${product.stock > 0 ? '' : 'stock-out'}">Stock : ${product.stock}</span></button>`).join('')}</div>`
@@ -446,10 +540,16 @@
       fields = `<div class="catalog-check"><input type="checkbox" id="modal-use-catalog" /> <label for="modal-use-catalog">${t('app_modal_use_catalog', 'Choisir dans le stock')}</label></div>
         <div class="catalog-panel hidden" id="catalog-panel"><div class="sale-catalog-search"><input type="text" id="modal-catalog-search" placeholder="${t('app_modal_search_product', 'Rechercher un produit…')}" /></div>${catalogGrid}</div>
         <div class="field free-field"><label>${t('app_modal_product_opt', 'Produit (optionnel)')}</label><input id="modal-product" placeholder="${t('app_modal_product_ph', 'Nom du produit')}" list="product-list" /><datalist id="product-list">${state.produits.map(product => `<option value="${escapeHtml(product.nom)}">`).join('')}</datalist></div>
-        <div class="field"><label>${t('app_modal_qty', 'Quantité')}</label><input id="modal-quantite" type="number" min="1" value="1" /></div><div class="field"><label>${t('app_modal_amount', 'Montant total')} (${escapeHtml(state.entreprise.devise)})</label><input id="modal-amount" type="number" placeholder="0" /></div>${storeField}<div class="field"><label>${t('app_modal_payment', 'Mode de paiement')}</label><select id="modal-payment"><option value="liquide">${t('app_pay_cash', 'Liquide')}</option><option value="mobile_money">${t('app_pay_mobile', 'Mobile money')}</option></select></div>`;
+        <div class="field"><label>${t('app_modal_qty', 'Quantité')}</label><input id="modal-quantite" type="number" min="1" value="1" /></div><div class="field"><label>${t('app_modal_amount', 'Montant total')} (${escapeHtml(state.entreprise.devise)})</label><input id="modal-amount" type="number" placeholder="0" /></div>${storeField}<div class="field"><label>${t('app_modal_payment', 'Mode de paiement')}</label><select id="modal-payment"><option value="liquide">${t('app_pay_cash', 'Liquide')}</option><option value="mobile_money">${t('app_pay_mobile', 'Mobile money')}</option></select></div>
+        <div class="catalog-check"><input type="checkbox" id="modal-credit" /> <label for="modal-credit">${t('app_modal_credit', 'Vente à crédit')}</label></div>
+        <div class="catalog-panel hidden" id="credit-panel">
+          <div class="field"><label>${t('app_modal_client', 'Nom du client')}</label><input id="modal-client" placeholder="Ex. Moussa Diallo" /></div>
+          <div class="field"><label>${t('app_modal_client_phone', 'Téléphone du client (optionnel)')}</label><input id="modal-client-phone" type="tel" inputmode="numeric" placeholder="77 000 00 00" /></div>
+          <div class="field"><label>${t('app_modal_due', 'Date d’échéance')}</label><input id="modal-echeance" type="date" /></div>
+        </div>`;
     } else if (type === 'expense') {
       title = t('app_modal_expense', 'Ajouter une dépense');
-      const storeField = state.isPersonnel ? '' : `<div class="field"><label>${t('app_th_store', 'Boutique')}</label><select id="modal-store">${storeOptions()}</select></div>`;
+      const storeField = state.isPersonnel ? '' : `<div class="field"><label>${t('app_th_store', 'Boutique')}</label><select id="modal-store">${storeOptions(defaultStoreId())}</select></div>`;
       fields = `<div class="field"><label>${t('app_modal_reason', 'Motif')}</label><input id="modal-reason" placeholder="${t('app_modal_reason_ph', 'Ex. Transport livraison')}" /></div><div class="field"><label>${t('app_modal_amount', 'Montant total')} (${escapeHtml(state.entreprise.devise)})</label><input id="modal-amount" type="number" placeholder="0" /></div>${storeField}`;
     } else if (type === 'product') {
       title = t('app_modal_add_product', 'Ajouter un produit');
@@ -467,7 +567,8 @@
       const isOpen = type === 'open-cash';
       title = isOpen ? t('app_modal_open_cash', 'Ouvrir une caisse') : t('app_modal_close_cash', 'Fermer la caisse');
       const label = isOpen ? t('app_modal_open_amount', 'Montant d’ouverture') : t('app_modal_close_amount', 'Montant en caisse à la fermeture');
-      fields = `<div class="field"><label>${label} (${escapeHtml(state.entreprise.devise)})</label><input id="modal-amount" type="number" placeholder="0" /></div>`;
+      const openCaisse = !isOpen ? state.caisses.find(item => item.magasin_id === payload && !item.date_fermeture) : null;
+      fields = `${openCaisse ? `<p class="subtle" style="grid-column:1/-1">${t('app_close_expected', 'Attendu pour cette caisse')} : <strong>${money(cashExpectation(openCaisse))}</strong></p>` : ''}<div class="field"><label>${label} (${escapeHtml(state.entreprise.devise)})</label><input id="modal-amount" type="number" placeholder="0" /></div>`;
     } else if (type === 'magasin') {
       title = t('app_modal_add_store', 'Ajouter une boutique');
       fields = `<div class="field"><label>${t('app_modal_store_name', 'Nom de la boutique')}</label><input id="modal-store-name" placeholder="${t('app_modal_store_name_ph', 'Ex. Boutique Ngor')}" /></div><p class="subtle">${t('app_modal_store_added_sub', "La boutique s'ajoute à votre entreprise")} ${escapeHtml(state.entreprise.nom || '')}. ${t('app_modal_store_rename_later', 'Vous pouvez le renommer plus tard.')}</p>`;
@@ -484,6 +585,17 @@
       title = t('app_modal_delete_store', 'Supprimer la boutique');
       fields = `<p class="subtle" style="grid-column:1/-1">${t('app_modal_delete_confirm', 'Voulez-vous vraiment supprimer')} <strong>« ${escapeHtml(magasin.nom)} »</strong> ?<br><br>${t('app_modal_delete_cascade', 'Ses ventes, dépenses, caisses, produits propres et membres du personnel seront définitivement supprimés. Les produits communs resteront.')}</p>`;
       modal.dataset.storeId = magasin.id;
+    } else if (type === 'dette') {
+      title = t('app_modal_new_debt', 'Nouvelle dette');
+      const storeField = state.isPersonnel ? '' : `<div class="field"><label>${t('app_th_store', 'Boutique')}</label><select id="modal-store">${storeOptions(defaultStoreId())}</select></div>`;
+      fields = `<div class="field"><label>${t('app_modal_client', 'Nom du client')}</label><input id="modal-client" placeholder="Ex. Moussa Diallo" /></div><div class="field"><label>${t('app_modal_client_phone', 'Téléphone du client (optionnel)')}</label><input id="modal-client-phone" type="tel" inputmode="numeric" placeholder="77 000 00 00" /></div><div class="field"><label>${t('app_modal_amount', 'Montant total')} (${escapeHtml(state.entreprise.devise)})</label><input id="modal-amount" type="number" placeholder="0" /></div><div class="field"><label>${t('app_modal_due', 'Date d’échéance')}</label><input id="modal-echeance" type="date" /></div>${storeField}`;
+    } else if (type === 'dette-pay') {
+      const dette = state.dettes.find(item => item.id === payload);
+      if (!dette) { showToast(t('app_toast_debt_gone', 'Dette introuvable.')); return; }
+      const reste = detteReste(dette);
+      title = t('app_debt_pay_title', 'Encaisser un paiement');
+      fields = `<p class="subtle" style="grid-column:1/-1"><strong>${escapeHtml(dette.client_nom)}</strong> · ${t('app_debt_left_of', 'Reste dû')} : <strong>${money(reste)}</strong></p><div class="field"><label>${t('app_debt_pay_amount', 'Montant encaissé')} (${escapeHtml(state.entreprise.devise)})</label><input id="modal-amount" type="number" placeholder="0" max="${reste}" /></div><div class="field"><label>${t('app_modal_payment', 'Mode de paiement')}</label><select id="modal-payment"><option value="liquide">${t('app_pay_cash', 'Liquide')}</option><option value="mobile_money">${t('app_pay_mobile', 'Mobile money')}</option></select></div>`;
+      modal.dataset.detteId = dette.id;
     } else if (type === 'settings') {
       title = t('app_modal_settings', 'Paramètres');
       const profil = window.solmaCompteSession?.compte || {};
@@ -547,6 +659,11 @@
         catalogPanel.classList.toggle('hidden', !show);
         freeField.classList.toggle('hidden-field', show);
       });
+      const creditCheck = modal.querySelector('#modal-credit');
+      const creditPanel = modal.querySelector('#credit-panel');
+      if (creditCheck) creditCheck.addEventListener('change', () => {
+        creditPanel.classList.toggle('hidden', !creditCheck.checked);
+      });
     }
     return modal;
   }
@@ -559,12 +676,21 @@
       const productName = rawProductName || 'Vente';
       const quantite = Number(modal.querySelector('#modal-quantite').value || 1);
       const magId = state.isPersonnel ? state.store : modal.querySelector('#modal-store').value;
-      const payment = modal.querySelector('#modal-payment').value;
+      const isCredit = !!modal.querySelector('#modal-credit')?.checked;
+      const payment = isCredit ? 'credit' : modal.querySelector('#modal-payment').value;
       if (!magId || amount <= 0 || quantite <= 0) { showToast(t('app_toast_sale_need', 'Renseignez le montant et la boutique.')); return; }
       const matchedProduct = rawProductName ? state.produits.find(item => item.nom === rawProductName && item.actif !== false && (item.magasin_id === magId || item.magasin_id === null)) : null;
-      const { response, payload } = await API('/api/sales', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { produit_id: matchedProduct?.id || null, nom_produit: productName, quantite, montant: amount, mode_paiement: payment, magasin_id: magId } });
+      const saleBody = { produit_id: matchedProduct?.id || null, nom_produit: productName, quantite, montant: amount, mode_paiement: payment, magasin_id: magId };
+      if (isCredit) {
+        saleBody.client_nom = modal.querySelector('#modal-client').value.trim();
+        saleBody.client_telephone = modal.querySelector('#modal-client-phone').value.trim();
+        saleBody.date_echeance = modal.querySelector('#modal-echeance').value;
+        if (!saleBody.client_nom || !saleBody.date_echeance) { showToast(t('app_toast_credit_need', 'Renseignez le client et la date d’échéance.')); return; }
+      }
+      const { response, payload } = await API('/api/sales', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: saleBody });
       if (!response.ok) { showToast(payload.error || t('app_toast_sale_ko', 'Vente impossible.')); return; }
       modal.remove();
+      saveLastStore(magId);
       await loadData();
       showToast(t('app_toast_sale_ok', 'Vente enregistrée.'));
     } else if (type === 'expense') {
@@ -574,6 +700,7 @@
       const { response, payload } = await API('/api/expenses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { montant: amount, motif: reason, magasin_id: magId } });
       if (!response.ok) { showToast(payload.error || t('app_toast_exp_ko', 'Dépense impossible.')); return; }
       modal.remove();
+      saveLastStore(magId);
       await loadData();
       showToast(t('app_toast_exp_ok', 'Dépense enregistrée.'));
     } else if (type === 'product') {
@@ -630,7 +757,7 @@
     } else if (type === 'magasin') {
       const nom = modal.querySelector('#modal-store-name').value.trim();
       if (!required(nom)) { showToast(t('app_toast_store_need', 'Renseignez le nom de la boutique.')); return; }
-      const { response, payload } = await API('/api/magasins', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { entreprise_id: state.entreprise_id, nom } });
+      const { response, payload } = await API('/api/structure', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { entreprise_id: state.entreprise_id, nom } });
       if (!response.ok) { showToast(payload.error || t('app_toast_store_ko', 'Création impossible.')); return; }
       modal.remove();
       state.store = payload.magasin.id;
@@ -640,7 +767,7 @@
       const storeId = modal.dataset.storeId;
       const nom = modal.querySelector('#modal-store-name').value.trim();
       if (!required(nom)) { showToast(t('app_toast_store_need', 'Renseignez le nom de la boutique.')); return; }
-      const { response, payload } = await API('/api/magasins', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { action: 'rename', magasin_id: storeId, nom } });
+      const { response, payload } = await API('/api/structure', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { action: 'rename', magasin_id: storeId, nom } });
       if (!response.ok) { showToast(payload.error || t('app_toast_store_ren_ko', 'Renommage impossible.')); return; }
       modal.remove();
       await loadData();
@@ -649,12 +776,33 @@
       const storeId = modal.dataset.storeId;
       if (!storeId) { showToast(t('app_toast_store_gone', 'Boutique introuvable.')); return; }
       if (!confirm(t('app_confirm_store_del', 'Supprimer définitivement cette boutique et toutes ses données ?'))) return;
-      const { response, payload } = await API('/api/magasins', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { action: 'delete', magasin_id: storeId } });
+      const { response, payload } = await API('/api/structure', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { action: 'delete', magasin_id: storeId } });
       if (!response.ok) { showToast(payload.error || t('app_toast_store_del_ko', 'Suppression impossible.')); return; }
       modal.remove();
       if (state.store === storeId) state.store = 'all';
       await loadData();
       showToast(t('app_toast_store_del_ok', 'Boutique supprimée.'));
+    } else if (type === 'dette') {
+      const nom = modal.querySelector('#modal-client').value.trim();
+      const telephone = modal.querySelector('#modal-client-phone').value.trim();
+      const echeance = modal.querySelector('#modal-echeance').value;
+      const magId = state.isPersonnel ? state.store : modal.querySelector('#modal-store').value;
+      if (!required(nom) || amount <= 0 || !echeance || !magId) { showToast(t('app_toast_debt_need', 'Renseignez le client, le montant et l’échéance.')); return; }
+      const { response, payload } = await API('/api/dettes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { client_nom: nom, client_telephone: telephone, montant: amount, date_echeance: echeance, magasin_id: magId } });
+      if (!response.ok) { showToast(payload.error || t('app_toast_debt_ko', 'Création impossible.')); return; }
+      modal.remove();
+      saveLastStore(magId);
+      await loadData();
+      showToast(t('app_toast_debt_ok', 'Dette enregistrée.'));
+    } else if (type === 'dette-pay') {
+      const detteId = modal.dataset.detteId;
+      const payment = modal.querySelector('#modal-payment').value;
+      if (!detteId || amount <= 0) { showToast(t('app_toast_pay_need', 'Renseignez un montant valide.')); return; }
+      const { response, payload } = await API('/api/dettes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { action: 'pay', dette_id: detteId, montant: amount, mode_paiement: payment } });
+      if (!response.ok) { showToast(payload.error || t('app_toast_pay_ko', 'Encaissement impossible.')); return; }
+      modal.remove();
+      await loadData();
+      showToast(t('app_toast_pay_ok', 'Paiement enregistré.'));
     } else if (type === 'settings') {
       const nom = modal.querySelector('#modal-profile-nom').value.trim();
       if (!required(nom)) { showToast(t('app_toast_profile_need', 'Renseignez votre nom.')); return; }
@@ -662,7 +810,7 @@
         const entrepriseNom = modal.querySelector('#modal-entreprise-nom').value.trim();
         const devise = modal.querySelector('#modal-entreprise-devise').value.trim();
         if (!required(entrepriseNom) || !required(devise)) { showToast(t('app_toast_company_need', 'Renseignez l’entreprise et la devise.')); return; }
-        const { response, payload } = await API('/api/entreprise', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { entreprise_id: state.entreprise_id, nom: entrepriseNom, devise } });
+        const { response, payload } = await API('/api/structure', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { action: 'entreprise', entreprise_id: state.entreprise_id, nom: entrepriseNom, devise } });
         if (!response.ok) { showToast(payload.error || t('app_toast_company_ko', 'Entreprise non modifiée.')); return; }
       }
       const email = modal.querySelector('#modal-profile-email')?.value.trim();
@@ -715,6 +863,13 @@
     await loadData();
     showToast(t('app_toast_exp_cancelled', 'Dépense annulée.'));
   }
+  async function cancelDette(detteId) {
+    if (!confirm(t('app_confirm_debt', 'Annuler cette dette ? Les versements déjà reçus sont conservés.'))) return;
+    const { response, payload } = await API('/api/dettes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { action: 'cancel', dette_id: detteId } });
+    if (!response.ok) { showToast(payload.error || t('app_toast_debt_cancel_ko', 'Annulation impossible.')); return; }
+    await loadData();
+    showToast(t('app_toast_debt_cancelled', 'Dette annulée.'));
+  }
   async function toggleProduct(productId, active) {
     if (!confirm(active ? t('app_confirm_prod_on', 'Réactiver ce produit ?') : t('app_confirm_prod_off', 'Désactiver ce produit ? Il ne pourra plus être vendu.'))) return;
     const { response, payload } = await API('/api/products', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { action: 'toggle', produit_id: productId, actif: !active } });
@@ -763,6 +918,7 @@
       if (action === 'new-expense') openModal('expense');
       if (action === 'new-product') openModal('product');
       if (action === 'new-team') openModal('team');
+      if (action === 'new-debt') openModal('dette');
       if (action === 'open-cash') openModal('open-cash', button.dataset.store);
       if (action === 'close-cash') openModal('close-cash', button.dataset.store);
       if (action === 'export-csv-sales') exportSalesCsv();
@@ -775,6 +931,8 @@
     });
     document.querySelectorAll('[data-cancel-sale]').forEach(button => button.onclick = () => cancelSale(button.dataset.cancelSale));
     document.querySelectorAll('[data-cancel-expense]').forEach(button => button.onclick = () => cancelExpense(button.dataset.cancelExpense));
+    document.querySelectorAll('[data-pay-dette]').forEach(button => button.onclick = () => openModal('dette-pay', button.dataset.payDette));
+    document.querySelectorAll('[data-cancel-dette]').forEach(button => button.onclick = () => cancelDette(button.dataset.cancelDette));
     document.querySelectorAll('[data-edit-product]').forEach(button => button.onclick = () => openModal('product-edit', button.dataset.editProduct));
     document.querySelectorAll('[data-toggle-product]').forEach(button => button.onclick = () => toggleProduct(button.dataset.toggleProduct, button.dataset.active === '1'));
     document.querySelectorAll('[data-deactivate-personnel]').forEach(button => button.onclick = () => togglePersonnel(button.dataset.deactivatePersonnel, button.dataset.active === '1'));
@@ -782,16 +940,25 @@
   }
 
   function render() {
-    const views = { dashboard: dashboardView, sales: salesView, cash: cashView, expenses: expensesView, products: productsView, team: teamView, reports: reportsView };
+    const views = { dashboard: dashboardView, sales: salesView, cash: cashView, expenses: expensesView, debts: dettesView, products: productsView, team: teamView, reports: reportsView };
     if (state.currentView === 'products' && state.isPersonnel) state.currentView = 'dashboard';
     if (state.currentView === 'team' && state.isPersonnel) state.currentView = 'dashboard';
     if (state.currentView === 'reports' && state.isPersonnel) state.currentView = 'dashboard';
     page.innerHTML = views[state.currentView]();
     document.querySelector('#breadcrumb-current').textContent = pageTitle();
     document.querySelectorAll('.nav-item').forEach(item => item.classList.toggle('active', item.dataset.view === state.currentView));
+    syncDebtsBadge();
     bindViewEvents();
     setupStoreSelector();
     animateCounts();
+  }
+
+  function syncDebtsBadge() {
+    const badge = document.querySelector('#nav-debts-count');
+    if (!badge) return;
+    const late = personnelOwnDettes(filtered(state.dettes)).filter(dette => !dette.annulee && detteStatut(dette) === 'retard').length;
+    badge.textContent = late > 99 ? '99+' : String(late);
+    badge.classList.toggle('hidden', !late);
   }
 
   function setupStoreSelector() {

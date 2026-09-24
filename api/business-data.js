@@ -35,7 +35,7 @@ export default async function handler(request, response) {
     return query.or(`magasin_id.eq.${magasinId},magasin_id.is.null`);
   };
 
-const [entrepriseResult, magasinsResult, produitsResult, ventesResult, depensesResult, caissesResult, personnelResult] = await Promise.all([
+const [entrepriseResult, magasinsResult, produitsResult, ventesResult, depensesResult, caissesResult, personnelResult, dettesResult, versementsResult] = await Promise.all([
     client.from('entreprises').select('id, nom, devise').eq('id', entrepriseId).eq('compte_id', compteId).maybeSingle(),
     (isSeller && magasinId
       ? client.from('magasins').select('id, nom').eq('id', magasinId).eq('compte_id', compteId)
@@ -46,11 +46,16 @@ const [entrepriseResult, magasinsResult, produitsResult, ventesResult, depensesR
     storeScope(client.from('caisses').select('*, magasins(nom)').eq('compte_id', compteId).eq('entreprise_id', entrepriseId)).order('date_ouverture', { ascending: false }).limit(150),
     (isSeller && identity.personnelId
       ? client.from('personnel').select('id, nom, role, magasin_id, actif').eq('id', identity.personnelId).eq('compte_id', compteId)
-      : client.from('personnel').select('id, nom, role, telephone, magasin_id, actif').eq('compte_id', compteId).eq('entreprise_id', entrepriseId).order('nom'))
+      : client.from('personnel').select('id, nom, role, telephone, magasin_id, actif').eq('compte_id', compteId).eq('entreprise_id', entrepriseId).order('nom')),
+    storeScope(client.from('dettes').select('*').eq('compte_id', compteId).eq('entreprise_id', entrepriseId)).order('date_echeance', { ascending: true }),
+    storeScope(client.from('versements').select('*').eq('compte_id', compteId).eq('entreprise_id', entrepriseId)).order('date_heure', { ascending: false }).limit(300)
   ]);
 
-  const failing = [entrepriseResult, magasinsResult, produitsResult, ventesResult, depensesResult, caissesResult, personnelResult].find(result => result.error);
-  if (failing) { console.error('business-data:', failing.error.message); return response.status(500).json({ error: 'Erreur serveur. Réessayez.' }); }
+  const failing = [entrepriseResult, magasinsResult, produitsResult, ventesResult, depensesResult, caissesResult, personnelResult, dettesResult, versementsResult].find(result => result.error);
+  if (failing && failing.error.code !== '42P01') { console.error('business-data:', failing.error.message); return response.status(500).json({ error: 'Erreur serveur. Réessayez.' }); }
+  // Tables dettes/versements absentes (migration non jouée) : on continue sans elles.
+  const dettes = dettesResult.error ? [] : (dettesResult.data || []);
+  const versements = versementsResult.error ? [] : (versementsResult.data || []);
 
   return response.status(200).json({
     entreprise: entrepriseResult.data || { id: null, nom: '', devise: 'FCFA' },
@@ -59,6 +64,8 @@ const [entrepriseResult, magasinsResult, produitsResult, ventesResult, depensesR
     ventes: ventesResult.data || [],
     depenses: depensesResult.data || [],
     caisses: caissesResult.data || [],
-    personnel: personnelResult.data || []
+    personnel: personnelResult.data || [],
+    dettes,
+    versements
   });
 }

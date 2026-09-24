@@ -1158,6 +1158,50 @@ background: linear-gradient(145deg, rgb(50 209 155 / 72%), rgba(255, 255, 255, .
   background: var(--red-soft);
 }
 
+/* Bannière d'échéances + pastille de retard (dettes clients) */
+.due-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 14px;
+  padding: 14px 18px;
+  border: 1px solid rgba(255,255,255,.6);
+  text-align: left;
+  color: var(--ink);
+  cursor: pointer;
+}
+.due-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  color: var(--teal-dark);
+  background: var(--lime);
+}
+.due-text { flex: 1; display: grid; gap: 2px; }
+.due-text strong { font: 800 16px Manrope, sans-serif; letter-spacing: -.4px; }
+.due-text span span { color: var(--muted); font-size: 10px; }
+.due-late { border-color: rgba(163,74,66,.5); }
+.due-late .due-icon { color: var(--red-dark); background: var(--red-soft); }
+.due-late .due-text strong { color: var(--red-dark); }
+.due-go { color: var(--muted); font-weight: 700; }
+.nav-count {
+  margin-left: auto;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+  color: white;
+  background: var(--red);
+  font-size: 10px;
+  font-weight: 800;
+}
+
 @media (max-width: 720px) {
   .filter-input {
     width: 100%;
